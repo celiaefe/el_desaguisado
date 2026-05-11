@@ -373,7 +373,12 @@ def format_export_datetime(value) -> str:
 
 
 def create_app() -> Flask:
-    app = Flask(__name__)
+    app = Flask(
+        __name__,
+        static_folder=str(BASE_DIR / "static"),
+        static_url_path="/static",
+        template_folder=str(BASE_DIR / "templates"),
+    )
     # En local se usa el valor de desarrollo; en Vercel define SECRET_KEY.
     if not os.getenv("VERCEL"):
         INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
