@@ -1,0 +1,104 @@
+{% set form_values = form_data if form_data else {} %}
+
+{% if incidencia and not form_data %}
+  {% set fecha_incidencia_value = incidencia.fecha_incidencia.isoformat() if incidencia.fecha_incidencia else '' %}
+  {% set fecha_compra_value = incidencia.fecha_compra.isoformat() if incidencia.fecha_compra else '' %}
+  {% set fecha_cierre_value = incidencia.fecha_cierre.isoformat() if incidencia.fecha_cierre else '' %}
+{% else %}
+  {% set fecha_incidencia_value = form_values.get('fecha_incidencia', '') %}
+  {% set fecha_compra_value = form_values.get('fecha_compra', '') %}
+  {% set fecha_cierre_value = form_values.get('fecha_cierre', '') %}
+{% endif %}
+
+<div class="form-grid">
+  <label class="field">
+    <span>Fecha incidencia</span>
+    <input type="date" name="fecha_incidencia" value="{{ fecha_incidencia_value }}" required>
+  </label>
+
+  <label class="field">
+    <span>Fecha compra</span>
+    <input type="date" name="fecha_compra" value="{{ fecha_compra_value }}">
+  </label>
+
+  <label class="field">
+    <span>Tienda</span>
+    <input type="text" name="tienda" maxlength="150" value="{{ form_values.get('tienda', incidencia.tienda if incidencia else '') }}" required>
+  </label>
+
+  <label class="field">
+    <span>Producto</span>
+    <input type="text" name="producto" maxlength="150" value="{{ form_values.get('producto', incidencia.producto if incidencia else '') }}" required>
+  </label>
+
+  <label class="field">
+    <span>Lote</span>
+    <input type="text" name="lote" maxlength="100" value="{{ form_values.get('lote', incidencia.lote if incidencia else '') }}">
+  </label>
+
+  <label class="field">
+    <span>Unidades afectadas</span>
+    <input type="number" name="unidades_afectadas" min="1" step="1" value="{{ form_values.get('unidades_afectadas', incidencia.unidades_afectadas if incidencia else 1) }}" required>
+  </label>
+
+  <label class="field">
+    <span>Unidades compradas</span>
+    <input type="number" name="unidades_compradas" min="1" step="1" value="{{ form_values.get('unidades_compradas', incidencia.unidades_compradas if incidencia else '') }}">
+  </label>
+
+  <label class="field">
+    <span>Tipo de incidencia</span>
+    <select name="tipo_incidencia" required>
+      {% set current_tipo = form_values.get('tipo_incidencia', incidencia.tipo_incidencia if incidencia else '') %}
+      <option value="">Selecciona una opción</option>
+      {% for tipo in tipos_incidencia %}
+        <option value="{{ tipo }}" {% if current_tipo == tipo %}selected{% endif %}>{{ tipo }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="field">
+    <span>Estado</span>
+    {% set current_estado = form_values.get('estado', incidencia.estado if incidencia else 'Nueva') %}
+    <select name="estado" required>
+      {% for estado in estados_incidencia %}
+        <option value="{{ estado }}" {% if current_estado == estado %}selected{% endif %}>{{ estado }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="field">
+    <span>Prioridad</span>
+    {% set current_prioridad = form_values.get('prioridad', incidencia.prioridad if incidencia else 'Media') %}
+    <select name="prioridad" required>
+      {% for prioridad in prioridades_incidencia %}
+        <option value="{{ prioridad }}" {% if current_prioridad == prioridad %}selected{% endif %}>{{ prioridad }}</option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <label class="field">
+    <span>Responsable</span>
+    <input type="text" name="responsable" maxlength="120" value="{{ form_values.get('responsable', incidencia.responsable if incidencia else '') }}">
+  </label>
+
+  <label class="field field-full">
+    <span>Descripción</span>
+    <textarea name="descripcion" rows="5" required>{{ form_values.get('descripcion', incidencia.descripcion if incidencia else '') }}</textarea>
+  </label>
+
+  <label class="field field-full">
+    <span>Observaciones internas</span>
+    <textarea name="observaciones_internas" rows="4">{{ form_values.get('observaciones_internas', incidencia.observaciones_internas if incidencia else '') }}</textarea>
+  </label>
+
+  <label class="field field-full">
+    <span>Resolución</span>
+    <textarea name="resolucion" rows="4">{{ form_values.get('resolucion', incidencia.resolucion if incidencia else '') }}</textarea>
+  </label>
+
+  <label class="field">
+    <span>Fecha cierre</span>
+    <input type="date" name="fecha_cierre" value="{{ fecha_cierre_value }}">
+  </label>
+</div>

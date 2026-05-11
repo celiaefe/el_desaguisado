@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Incidencias | El Desaguisado{% endblock %}
+{% block eyebrow %}Seguimiento{% endblock %}
+{% block page_title %}Listado de incidencias{% endblock %}
+{% block header_actions %}
+  <div class="header-actions">
+    <a class="button button-secondary" href="{{ url_for('incidencias_exportar', **request.args) }}">Exportar CSV</a>
+    <a class="button" href="{{ url_for('incidencia_nueva') }}">Nueva incidencia</a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Incidencias registradas</h2>
+        <p>Consulta, abre y edita los casos activos o cerrados.</p>
+      </div>
+    </div>
+
+    <form class="filters-form" method="get">
+      <label class="field field-wide">
+        <span>Búsqueda rápida</span>
+        <input type="search" name="q" value="{{ filters.q }}" placeholder="Tienda, producto, lote, descripción o responsable">
+      </label>
+
+      <label class="field">
+        <span>Tienda</span>
+        <input type="text" name="tienda" value="{{ filters.tienda }}" placeholder="Nombre de tienda">
+      </label>
+
+      <label class="field">
+        <span>Producto</span>
+        <input type="text" name="producto" value="{{ filters.producto }}" placeholder="Producto">
+      </label>
+
+      <label class="field">
+        <span>Lote</span>
+        <input type="text" name="lote" value="{{ filters.lote }}" placeholder="Lote">
+      </label>
+
+      <label class="field">
+        <span>Estado</span>
+        <select name="estado">
+          <option value="">Todos</option>
+          {% for estado in estados_incidencia %}
+            <option value="{{ estado }}" {% if filters.estado == estado %}selected{% endif %}>{{ estado }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Tipo</span>
+        <select name="tipo_incidencia">
+          <option value="">Todos</option>
+          {% for tipo in tipos_incidencia %}
+            <option value="{{ tipo }}" {% if filters.tipo_incidencia == tipo %}selected{% endif %}>{{ tipo }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Fecha desde</span>
+        <input type="date" name="fecha_desde" value="{{ filters.fecha_desde }}">
+      </label>
+
+      <label class="field">
+        <span>Fecha hasta</span>
+        <input type="date" name="fecha_hasta" value="{{ filters.fecha_hasta }}">
+      </label>
+
+      <div class="filters-actions">
+        <button class="button" type="submit">Filtrar</button>
+        <a class="button button-secondary" href="{{ url_for('incidencias_list') }}">Limpiar</a>
+      </div>
+    </form>
+
+    {% if incidencias %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha</th>
+              <th>Tienda</th>
+              <th>Producto</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Prioridad</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for incidencia in incidencias %}
+              <tr>
+                <td>#{{ incidencia.id }}</td>
+                <td>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</td>
+                <td>{{ incidencia.tienda }}</td>
+                <td>{{ incidencia.producto }}</td>
+                <td>{{ incidencia.tipo_incidencia }}</td>
+                <td><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></td>
+                <td><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></td>
+                <td>
+                  <div class="row-actions">
+                    <a class="text-link" href="{{ url_for('incidencia_detalle', id=incidencia.id) }}">Ver</a>
+                    <a class="text-link" href="{{ url_for('incidencia_editar', id=incidencia.id) }}">Editar</a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">No hay incidencias que coincidan con los filtros seleccionados.</p>
+    {% endif %}
+  </section>
+{% endblock %}
