@@ -638,6 +638,46 @@ tbody tr:last-child td {
   white-space: pre-wrap;
 }
 
+.followup-panel {
+  margin-top: 1.5rem;
+}
+
+.followup-form {
+  margin-top: 1rem;
+  padding-bottom: 1.2rem;
+  border-bottom: 1px solid rgba(169, 135, 72, 0.2);
+}
+
+.followup-list {
+  display: grid;
+  gap: 0.95rem;
+  margin-top: 1.2rem;
+}
+
+.followup-item {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem 1.1rem;
+  background: rgba(250, 247, 239, 0.72);
+  border: 1px solid rgba(169, 135, 72, 0.2);
+  border-radius: 8px;
+}
+
+.followup-item time {
+  color: var(--olive);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.followup-item p {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
 @media (max-width: 980px) {
   .app-shell {
     grid-template-columns: 1fr;

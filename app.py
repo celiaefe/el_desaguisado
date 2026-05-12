@@ -120,6 +120,32 @@ class Incidencia(db.Model):
     observaciones_internas = db.Column(db.Text)
     resolucion = db.Column(db.Text)
     fecha_cierre = db.Column(db.Date)
+    seguimientos = db.relationship(
+        "SeguimientoIncidencia",
+        back_populates="incidencia",
+        cascade="all, delete-orphan",
+    )
+
+
+class SeguimientoIncidencia(db.Model):
+    """Comentario interno asociado a una incidencia."""
+
+    __tablename__ = "seguimientos_incidencia"
+
+    id = db.Column(db.Integer, primary_key=True)
+    incidencia_id = db.Column(
+        db.Integer,
+        db.ForeignKey("incidencias.id"),
+        nullable=False,
+        index=True,
+    )
+    fecha_creacion = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
+    comentario = db.Column(db.Text, nullable=False)
+    incidencia = db.relationship("Incidencia", back_populates="seguimientos")
 
 
 def clean_text(value: str, max_length: Optional[int] = None) -> str:
@@ -687,11 +713,35 @@ def create_app() -> Flask:
     @app.get("/incidencias/<int:id>")
     def incidencia_detalle(id: int):
         incidencia = db.get_or_404(Incidencia, id)
+        seguimientos = (
+            SeguimientoIncidencia.query.filter_by(incidencia_id=incidencia.id)
+            .order_by(SeguimientoIncidencia.fecha_creacion.desc())
+            .all()
+        )
         return render_template(
             "detalle_incidencia.html",
             app_name="Entre Lotes",
             incidencia=incidencia,
+            seguimientos=seguimientos,
         )
+
+    @app.post("/incidencias/<int:id>/seguimiento")
+    def incidencia_agregar_seguimiento(id: int):
+        incidencia = db.get_or_404(Incidencia, id)
+        comentario = request.form.get("comentario", "").strip()
+
+        if not comentario:
+            flash("El comentario de seguimiento es obligatorio.", "error")
+            return redirect(url_for("incidencia_detalle", id=incidencia.id))
+
+        seguimiento = SeguimientoIncidencia(
+            incidencia_id=incidencia.id,
+            comentario=comentario,
+        )
+        db.session.add(seguimiento)
+        db.session.commit()
+        flash("El comentario de seguimiento se ha añadido.", "success")
+        return redirect(url_for("incidencia_detalle", id=incidencia.id))
 
     @app.route("/incidencias/<int:id>/editar", methods=["GET", "POST"])
     def incidencia_editar(id: int):

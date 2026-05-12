@@ -77,4 +77,36 @@
       <p class="detail-text">{{ incidencia.resolucion or "Todavía no se ha documentado una resolución." }}</p>
     </article>
   </section>
+
+  <section class="panel followup-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Seguimiento interno</h2>
+        <p>Comentarios operativos añadidos por el equipo.</p>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('incidencia_agregar_seguimiento', id=incidencia.id) }}" class="form-stack followup-form">
+      <label class="field">
+        <span>Nuevo comentario</span>
+        <textarea name="comentario" rows="4" required placeholder="Añade una actualización interna sobre esta incidencia"></textarea>
+      </label>
+      <button class="button" type="submit">Añadir comentario</button>
+    </form>
+
+    {% if seguimientos %}
+      <div class="followup-list">
+        {% for seguimiento in seguimientos %}
+          <article class="followup-item">
+            <time datetime="{{ seguimiento.fecha_creacion.isoformat() }}">
+              {{ seguimiento.fecha_creacion.strftime("%d/%m/%Y %H:%M") }}
+            </time>
+            <p>{{ seguimiento.comentario }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">Todavía no hay comentarios de seguimiento interno.</p>
+    {% endif %}
+  </section>
 {% endblock %}
