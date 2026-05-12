@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Acceso | Entre Lotes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body class="auth-body">
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <div class="auth-brand">
+          <span class="brand-mark">EL</span>
+          <div>
+            <p class="eyebrow">Acceso interno</p>
+            <h1>Entre Lotes</h1>
+            <p>Panel interno de incidencias Picofino</p>
+          </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <section class="flash-stack" aria-label="Mensajes">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </section>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" class="form-stack auth-form">
+          <label class="field">
+            <span>Usuario</span>
+            <input type="text" name="username" value="{{ username or '' }}" autocomplete="username" required autofocus>
+          </label>
+
+          <label class="field">
+            <span>Contraseña</span>
+            <input type="password" name="password" autocomplete="current-password" required>
+          </label>
+
+          <button class="button" type="submit">Entrar</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

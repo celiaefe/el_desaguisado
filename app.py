@@ -4,11 +4,21 @@ import zipfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlsplit
 from xml.sax.saxutils import escape
 
 from flask import Flask, Response, flash, redirect, render_template, request, url_for
+from flask_login import (
+    current_user,
+    LoginManager,
+    UserMixin,
+    login_required,
+    login_user,
+    logout_user,
+)
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, or_, text
+from werkzeug.security import check_password_hash, generate_password_hash
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -44,6 +54,7 @@ OPTIONAL_INCIDENCIA_COLUMNS = {
 }
 
 db = SQLAlchemy()
+login_manager = LoginManager()
 TIPOS_INCIDENCIA = [
     "Rotura en envío",
     "Extravío",
@@ -90,6 +101,30 @@ PRIORIDAD_BADGE_CLASSES = {
 }
 ESTADOS_ABIERTOS = ["Nueva", "En revisión", "Pendiente"]
 ESTADOS_CON_CIERRE = {"Resuelta", "Cerrada"}
+
+
+class Usuario(UserMixin, db.Model):
+    """Usuario interno con acceso a la aplicación."""
+
+    __tablename__ = "usuarios"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(120), nullable=False)
+    username = db.Column(db.String(80), nullable=False, unique=True, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
+
+    @property
+    def is_active(self) -> bool:
+        return bool(self.activo)
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(
+            password, method="pbkdf2:sha256"
+        )
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
 
 
 class Incidencia(db.Model):
@@ -208,6 +243,18 @@ def badge_class(value: str, choices: dict[str, str]) -> str:
     """Devuelve una clase CSS estable para etiquetas visuales."""
 
     return choices.get(value, "default")
+
+
+def safe_next_url(value: Optional[str]) -> Optional[str]:
+    """Permite redirecciones despues del login solo dentro de la app."""
+
+    if not value:
+        return None
+
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith("/"):
+        return None
+    return value
 
 
 def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
@@ -346,6 +393,19 @@ def create_tables(app: Flask) -> None:
     with app.app_context():
         db.create_all()
         ensure_optional_incidencia_columns()
+        ensure_initial_user()
+
+
+def ensure_initial_user() -> None:
+    """Crea un usuario inicial si la instalación no tiene usuarios."""
+
+    if Usuario.query.first():
+        return
+
+    usuario = Usuario(nombre="Administrador", username="admin")
+    usuario.set_password("admin123")
+    db.session.add(usuario)
+    db.session.commit()
 
 
 def ensure_optional_incidencia_columns() -> None:
@@ -572,7 +632,18 @@ def create_app() -> Flask:
     app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
 
     db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = "login"
+    login_manager.login_message = "Inicia sesión para acceder a Entre Lotes."
+    login_manager.login_message_category = "error"
     create_tables(app)
+
+    @login_manager.user_loader
+    def load_user(user_id: str):
+        try:
+            return db.session.get(Usuario, int(user_id))
+        except (TypeError, ValueError):
+            return None
 
     @app.context_processor
     def inject_form_choices():
@@ -593,7 +664,41 @@ def create_app() -> Flask:
     def index():
         return redirect(url_for("dashboard"))
 
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        if current_user.is_authenticated:
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            username = clean_text(request.form.get("username", ""), 80)
+            password = request.form.get("password", "")
+            usuario = Usuario.query.filter_by(username=username).first()
+
+            if not usuario or not usuario.check_password(password) or not usuario.activo:
+                flash("Usuario o contraseña incorrectos.", "error")
+                return render_template(
+                    "login.html",
+                    app_name="Entre Lotes",
+                    username=username,
+                )
+
+            login_user(usuario)
+            flash("Sesión iniciada correctamente.", "success")
+            return redirect(
+                safe_next_url(request.args.get("next")) or url_for("dashboard")
+            )
+
+        return render_template("login.html", app_name="Entre Lotes")
+
+    @app.get("/logout")
+    @login_required
+    def logout():
+        logout_user()
+        flash("Sesión cerrada correctamente.", "success")
+        return redirect(url_for("login"))
+
     @app.get("/dashboard")
+    @login_required
     def dashboard():
         total = Incidencia.query.count()
         nuevas = Incidencia.query.filter_by(estado="Nueva").count()
@@ -615,6 +720,7 @@ def create_app() -> Flask:
         )
 
     @app.route("/incidencias")
+    @login_required
     def incidencias_list():
         filters = get_incidencia_filters(request.args)
         incidencias = build_incidencias_query(filters).all()
@@ -626,6 +732,7 @@ def create_app() -> Flask:
         )
 
     @app.get("/incidencias/exportar")
+    @login_required
     def incidencias_exportar():
         filters = get_incidencia_filters(request.args)
         incidencias = build_incidencias_query(filters).all()
@@ -692,6 +799,7 @@ def create_app() -> Flask:
         )
 
     @app.route("/incidencias/nueva", methods=["GET", "POST"])
+    @login_required
     def incidencia_nueva():
         if request.method == "POST":
             data, errors = validate_incidencia_form(request.form)
@@ -711,6 +819,7 @@ def create_app() -> Flask:
         return render_incidencia_form("nueva_incidencia.html")
 
     @app.get("/incidencias/<int:id>")
+    @login_required
     def incidencia_detalle(id: int):
         incidencia = db.get_or_404(Incidencia, id)
         seguimientos = (
@@ -726,6 +835,7 @@ def create_app() -> Flask:
         )
 
     @app.post("/incidencias/<int:id>/seguimiento")
+    @login_required
     def incidencia_agregar_seguimiento(id: int):
         incidencia = db.get_or_404(Incidencia, id)
         comentario = request.form.get("comentario", "").strip()
@@ -744,6 +854,7 @@ def create_app() -> Flask:
         return redirect(url_for("incidencia_detalle", id=incidencia.id))
 
     @app.route("/incidencias/<int:id>/editar", methods=["GET", "POST"])
+    @login_required
     def incidencia_editar(id: int):
         incidencia = db.get_or_404(Incidencia, id)
 
@@ -768,6 +879,7 @@ def create_app() -> Flask:
         return render_incidencia_form("editar_incidencia.html", incidencia=incidencia)
 
     @app.post("/incidencias/<int:id>/estado")
+    @login_required
     def incidencia_cambiar_estado(id: int):
         incidencia = db.get_or_404(Incidencia, id)
         nuevo_estado = clean_text(request.form.get("estado", ""), 50)

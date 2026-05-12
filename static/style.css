@@ -148,6 +148,33 @@ a {
   background: var(--brass);
 }
 
+.sidebar-user {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1.6rem;
+  padding: 1rem;
+  border: 1px solid rgba(218, 194, 143, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.08);
+}
+
+.sidebar-user span {
+  color: #fffdf7;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.sidebar-user a {
+  color: rgba(255, 253, 247, 0.72);
+  font-size: 0.84rem;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.sidebar-user a:hover {
+  color: #fffdf7;
+}
+
 .main-area {
   min-width: 0;
   padding: 2.15rem;
@@ -184,6 +211,49 @@ a {
 .content {
   display: grid;
   gap: 1.45rem;
+}
+
+.auth-body {
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.auth-shell {
+  width: min(100%, 460px);
+}
+
+.auth-panel {
+  padding: 2rem;
+  border: 1px solid rgba(169, 135, 72, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--surface), #fbf8f0);
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.4rem;
+}
+
+.auth-brand h1 {
+  margin: 0;
+  color: #232018;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.auth-brand p:last-child {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.auth-form {
+  margin-top: 1.2rem;
 }
 
 .button {

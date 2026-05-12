@@ -22,6 +22,13 @@
           <a class="{% if request.endpoint in ['incidencias_list', 'incidencia_detalle', 'incidencia_editar'] %}is-active{% endif %}" href="{{ url_for('incidencias_list') }}">Incidencias</a>
           <a class="{% if request.endpoint == 'incidencia_nueva' %}is-active{% endif %}" href="{{ url_for('incidencia_nueva') }}">Nueva incidencia</a>
         </nav>
+
+        {% if current_user.is_authenticated %}
+          <div class="sidebar-user">
+            <span>{{ current_user.nombre }}</span>
+            <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+          </div>
+        {% endif %}
       </aside>
 
       <div class="main-area">
