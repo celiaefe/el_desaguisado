@@ -36,12 +36,16 @@
 
           <label class="field">
             <span>Contraseña</span>
-            <input type="password" name="password" autocomplete="current-password" required>
+            <span class="password-field">
+              <input id="password" type="password" name="password" autocomplete="current-password" required>
+              <button class="password-toggle" type="button" data-password-toggle="password" aria-label="Ver contraseña">Ver</button>
+            </span>
           </label>
 
           <button class="button" type="submit">Entrar</button>
         </form>
       </section>
     </main>
+    <script src="{{ url_for('static', filename='password-toggle.js') }}"></script>
   </body>
 </html>

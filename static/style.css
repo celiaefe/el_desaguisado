@@ -634,6 +634,30 @@ tbody tr:last-child td {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
+.password-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.password-toggle {
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.78);
+  color: var(--accent);
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  border-color: var(--brass);
+  background: var(--surface);
+}
+
 .field textarea {
   resize: vertical;
 }
