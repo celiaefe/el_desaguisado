@@ -697,6 +697,31 @@ def create_app() -> Flask:
         flash("Sesión cerrada correctamente.", "success")
         return redirect(url_for("login"))
 
+    @app.route("/cuenta/cambiar-password", methods=["GET", "POST"])
+    @login_required
+    def cambiar_password():
+        if request.method == "POST":
+            password_actual = request.form.get("password_actual", "")
+            nueva_password = request.form.get("nueva_password", "")
+            repetir_password = request.form.get("repetir_password", "")
+
+            if not current_user.check_password(password_actual):
+                flash("La contraseña actual no es correcta.", "error")
+                return render_template("cambiar_password.html", app_name="Entre Lotes")
+            if not nueva_password:
+                flash("La nueva contraseña no puede estar vacía.", "error")
+                return render_template("cambiar_password.html", app_name="Entre Lotes")
+            if nueva_password != repetir_password:
+                flash("La nueva contraseña y su repetición deben coincidir.", "error")
+                return render_template("cambiar_password.html", app_name="Entre Lotes")
+
+            current_user.set_password(nueva_password)
+            db.session.commit()
+            flash("La contraseña se ha actualizado correctamente.", "success")
+            return redirect(url_for("dashboard"))
+
+        return render_template("cambiar_password.html", app_name="Entre Lotes")
+
     @app.get("/dashboard")
     @login_required
     def dashboard():

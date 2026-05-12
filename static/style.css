@@ -545,6 +545,10 @@ tbody tr:last-child td {
   max-width: 1080px;
 }
 
+.account-panel {
+  max-width: 620px;
+}
+
 .form-stack {
   display: grid;
   gap: 1.2rem;

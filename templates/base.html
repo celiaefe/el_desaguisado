@@ -26,6 +26,7 @@
         {% if current_user.is_authenticated %}
           <div class="sidebar-user">
             <span>{{ current_user.nombre }}</span>
+            <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
             <a href="{{ url_for('logout') }}">Cerrar sesión</a>
           </div>
         {% endif %}
