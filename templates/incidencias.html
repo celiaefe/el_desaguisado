@@ -41,11 +41,41 @@
       </label>
 
       <label class="field">
+        <span>Número pedido</span>
+        <input type="text" name="numero_pedido" value="{{ filters.numero_pedido }}" placeholder="Pedido">
+      </label>
+
+      <label class="field">
+        <span>Transportista</span>
+        <input type="text" name="transportista" value="{{ filters.transportista }}" placeholder="Transportista">
+      </label>
+
+      <label class="field">
+        <span>Origen</span>
+        <select name="origen_incidencia">
+          <option value="">Todos</option>
+          {% for origen in origenes_incidencia %}
+            <option value="{{ origen }}" {% if filters.origen_incidencia == origen %}selected{% endif %}>{{ origen }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="field">
         <span>Estado</span>
         <select name="estado">
           <option value="">Todos</option>
           {% for estado in estados_incidencia %}
             <option value="{{ estado }}" {% if filters.estado == estado %}selected{% endif %}>{{ estado }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Prioridad</span>
+        <select name="prioridad">
+          <option value="">Todas</option>
+          {% for prioridad in prioridades_incidencia %}
+            <option value="{{ prioridad }}" {% if filters.prioridad == prioridad %}selected{% endif %}>{{ prioridad }}</option>
           {% endfor %}
         </select>
       </label>

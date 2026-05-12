@@ -365,7 +365,11 @@ def get_incidencia_filters(args) -> dict:
         "tienda": clean_text(args.get("tienda", ""), 150),
         "producto": clean_text(args.get("producto", ""), 150),
         "lote": clean_text(args.get("lote", ""), 100),
+        "numero_pedido": clean_text(args.get("numero_pedido", ""), 120),
+        "transportista": clean_text(args.get("transportista", ""), 120),
+        "origen_incidencia": clean_text(args.get("origen_incidencia", ""), 80),
         "estado": clean_text(args.get("estado", ""), 50),
+        "prioridad": clean_text(args.get("prioridad", ""), 50),
         "tipo_incidencia": clean_text(args.get("tipo_incidencia", ""), 100),
         "fecha_desde": args.get("fecha_desde", "").strip(),
         "fecha_hasta": args.get("fecha_hasta", "").strip(),
@@ -397,8 +401,22 @@ def build_incidencias_query(filters: dict):
         query = query.filter(Incidencia.producto.ilike(f"%{filters['producto']}%"))
     if filters["lote"]:
         query = query.filter(Incidencia.lote.ilike(f"%{filters['lote']}%"))
+    if filters["numero_pedido"]:
+        query = query.filter(
+            Incidencia.numero_pedido.ilike(f"%{filters['numero_pedido']}%")
+        )
+    if filters["transportista"]:
+        query = query.filter(
+            Incidencia.transportista.ilike(f"%{filters['transportista']}%")
+        )
+    if filters["origen_incidencia"] in ORIGENES_INCIDENCIA:
+        query = query.filter(
+            Incidencia.origen_incidencia == filters["origen_incidencia"]
+        )
     if filters["estado"] in ESTADOS_INCIDENCIA:
         query = query.filter(Incidencia.estado == filters["estado"])
+    if filters["prioridad"] in PRIORIDADES_INCIDENCIA:
+        query = query.filter(Incidencia.prioridad == filters["prioridad"])
     if filters["tipo_incidencia"] in TIPOS_INCIDENCIA:
         query = query.filter(Incidencia.tipo_incidencia == filters["tipo_incidencia"])
 
