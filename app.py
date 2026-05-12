@@ -1,9 +1,10 @@
-import csv
 import io
 import os
+import zipfile
 from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
+from xml.sax.saxutils import escape
 
 from flask import Flask, Response, flash, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
@@ -412,7 +413,7 @@ def build_incidencias_query(filters: dict):
 
 
 def format_export_date(value) -> str:
-    """Formatea fechas para el CSV sin fallar si vienen vacias."""
+    """Formatea fechas para la exportacion sin fallar si vienen vacias."""
 
     if not value:
         return ""
@@ -425,6 +426,87 @@ def format_export_datetime(value) -> str:
     if not value:
         return ""
     return value.strftime("%Y-%m-%d %H:%M")
+
+
+def excel_column_name(index: int) -> str:
+    """Convierte un indice de columna base 1 en nombre Excel: A, B, AA..."""
+
+    name = ""
+    while index:
+        index, remainder = divmod(index - 1, 26)
+        name = chr(65 + remainder) + name
+    return name
+
+
+def build_excel_workbook(rows: list[list]) -> bytes:
+    """Crea un libro XLSX sencillo compatible con Excel y Google Sheets."""
+
+    output = io.BytesIO()
+    worksheet_rows = []
+
+    for row_index, row in enumerate(rows, start=1):
+        cells = []
+        for column_index, value in enumerate(row, start=1):
+            cell_ref = f"{excel_column_name(column_index)}{row_index}"
+            if isinstance(value, int):
+                cells.append(f'<c r="{cell_ref}"><v>{value}</v></c>')
+                continue
+
+            text_value = "" if value is None else str(value)
+            cells.append(
+                f'<c r="{cell_ref}" t="inlineStr">'
+                f"<is><t>{escape(text_value)}</t></is>"
+                f"</c>"
+            )
+        worksheet_rows.append(f'<row r="{row_index}">{"".join(cells)}</row>')
+
+    worksheet_xml = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        "<sheetData>"
+        f"{''.join(worksheet_rows)}"
+        "</sheetData>"
+        "</worksheet>"
+    )
+
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as workbook:
+        workbook.writestr(
+            "[Content_Types].xml",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+            '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
+            "</Types>",
+        )
+        workbook.writestr(
+            "_rels/.rels",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+            "</Relationships>",
+        )
+        workbook.writestr(
+            "xl/workbook.xml",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            "<sheets>"
+            '<sheet name="Incidencias" sheetId="1" r:id="rId1"/>'
+            "</sheets>"
+            "</workbook>",
+        )
+        workbook.writestr(
+            "xl/_rels/workbook.xml.rels",
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>'
+            "</Relationships>",
+        )
+        workbook.writestr("xl/worksheets/sheet1.xml", worksheet_xml)
+
+    return output.getvalue()
 
 
 def create_app() -> Flask:
@@ -503,10 +585,7 @@ def create_app() -> Flask:
     def incidencias_exportar():
         filters = get_incidencia_filters(request.args)
         incidencias = build_incidencias_query(filters).all()
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(
+        rows = [
             [
                 "ID",
                 "Fecha registro",
@@ -530,10 +609,10 @@ def create_app() -> Flask:
                 "Resolución",
                 "Fecha cierre",
             ]
-        )
+        ]
 
         for incidencia in incidencias:
-            writer.writerow(
+            rows.append(
                 [
                     incidencia.id,
                     format_export_datetime(incidencia.fecha_registro),
@@ -559,10 +638,10 @@ def create_app() -> Flask:
                 ]
             )
 
-        filename = f"incidencias_entre_lotes_{date.today().isoformat()}.csv"
+        filename = f"incidencias_entre_lotes_{date.today().isoformat()}.xlsx"
         return Response(
-            "\ufeff" + output.getvalue(),
-            mimetype="text/csv",
+            build_excel_workbook(rows),
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
             },
