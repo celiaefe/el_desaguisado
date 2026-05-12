@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Incidencias | El Desaguisado{% endblock %}
+{% block title %}Incidencias | Entre Lotes{% endblock %}
 {% block eyebrow %}Seguimiento{% endblock %}
 {% block page_title %}Listado de incidencias{% endblock %}
 {% block header_actions %}
@@ -22,7 +22,7 @@
     <form class="filters-form" method="get">
       <label class="field field-wide">
         <span>Búsqueda rápida</span>
-        <input type="search" name="q" value="{{ filters.q }}" placeholder="Tienda, producto, lote, descripción o responsable">
+        <input type="search" name="q" value="{{ filters.q }}" placeholder="Tienda, producto, lote, pedido, transportista o responsable">
       </label>
 
       <label class="field">
@@ -85,6 +85,8 @@
               <th>Fecha</th>
               <th>Tienda</th>
               <th>Producto</th>
+              <th>Pedido</th>
+              <th>Transportista</th>
               <th>Tipo</th>
               <th>Estado</th>
               <th>Prioridad</th>
@@ -98,6 +100,8 @@
                 <td>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</td>
                 <td>{{ incidencia.tienda }}</td>
                 <td>{{ incidencia.producto }}</td>
+                <td>{{ incidencia.numero_pedido or "-" }}</td>
+                <td>{{ incidencia.transportista or "-" }}</td>
                 <td>{{ incidencia.tipo_incidencia }}</td>
                 <td><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></td>
                 <td><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></td>

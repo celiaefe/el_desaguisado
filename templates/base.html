@@ -3,17 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}El Desaguisado{% endblock %}</title>
+    <title>{% block title %}Entre Lotes{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Navegación principal">
         <a class="brand-lockup" href="{{ url_for('dashboard') }}">
-          <span class="brand-mark">ED</span>
+          <span class="brand-mark">EL</span>
           <span>
-            <strong>El Desaguisado</strong>
-            <small>Picofino</small>
+            <strong>Entre Lotes</strong>
+            <small>Panel interno de incidencias Picofino</small>
           </span>
         </a>
 
@@ -28,7 +28,7 @@
         <header class="top-header">
           <div>
             <p class="eyebrow">{% block eyebrow %}Gestión interna{% endblock %}</p>
-            <h1>{% block page_title %}El Desaguisado{% endblock %}</h1>
+            <h1>{% block page_title %}Entre Lotes{% endblock %}</h1>
           </div>
           {% block header_actions %}{% endblock %}
         </header>

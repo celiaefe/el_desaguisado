@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Incidencia #{{ incidencia.id }} | El Desaguisado{% endblock %}
+{% block title %}Incidencia #{{ incidencia.id }} | Entre Lotes{% endblock %}
 {% block eyebrow %}Detalle{% endblock %}
 {% block page_title %}Incidencia #{{ incidencia.id }}{% endblock %}
 {% block header_actions %}
@@ -23,26 +23,32 @@
         <div><dt>Fecha registro</dt><dd>{{ incidencia.fecha_registro.strftime("%d/%m/%Y %H:%M") }}</dd></div>
         <div><dt>Fecha incidencia</dt><dd>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</dd></div>
         <div><dt>Fecha compra</dt><dd>{{ incidencia.fecha_compra.strftime("%d/%m/%Y") if incidencia.fecha_compra else "-" }}</dd></div>
+        <div><dt>Fecha detección</dt><dd>{{ incidencia.fecha_deteccion.strftime("%d/%m/%Y") if incidencia.fecha_deteccion else "-" }}</dd></div>
         <div><dt>Tienda</dt><dd>{{ incidencia.tienda }}</dd></div>
         <div><dt>Producto</dt><dd>{{ incidencia.producto }}</dd></div>
         <div><dt>Lote</dt><dd>{{ incidencia.lote or "-" }}</dd></div>
+        <div><dt>Número pedido</dt><dd>{{ incidencia.numero_pedido or "-" }}</dd></div>
+        <div><dt>Transportista</dt><dd>{{ incidencia.transportista or "-" }}</dd></div>
+        <div><dt>Origen</dt><dd>{{ incidencia.origen_incidencia or "-" }}</dd></div>
         <div><dt>Unidades compradas</dt><dd>{{ incidencia.unidades_compradas or "-" }}</dd></div>
         <div><dt>Unidades afectadas</dt><dd>{{ incidencia.unidades_afectadas }}</dd></div>
         <div><dt>Tipo</dt><dd>{{ incidencia.tipo_incidencia }}</dd></div>
-        <div><dt>Estado</dt><dd><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></dd></div>
-        <div><dt>Prioridad</dt><dd><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></dd></div>
-        <div><dt>Responsable</dt><dd>{{ incidencia.responsable or "-" }}</dd></div>
-        <div><dt>Fecha cierre</dt><dd>{{ incidencia.fecha_cierre.strftime("%d/%m/%Y") if incidencia.fecha_cierre else "-" }}</dd></div>
       </dl>
     </article>
 
     <aside class="panel">
       <div class="panel-head">
         <div>
-          <h2>Cambiar estado</h2>
-          <p>Actualiza el seguimiento operativo.</p>
+          <h2>Seguimiento</h2>
+          <p>Estado operativo y prioridad del caso.</p>
         </div>
       </div>
+      <dl class="detail-list detail-list-single">
+        <div><dt>Estado</dt><dd><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></dd></div>
+        <div><dt>Prioridad</dt><dd><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></dd></div>
+        <div><dt>Responsable</dt><dd>{{ incidencia.responsable or "-" }}</dd></div>
+        <div><dt>Fecha cierre</dt><dd>{{ incidencia.fecha_cierre.strftime("%d/%m/%Y") if incidencia.fecha_cierre else "-" }}</dd></div>
+      </dl>
       <form method="post" action="{{ url_for('incidencia_cambiar_estado', id=incidencia.id) }}" class="form-stack">
         <label class="field">
           <span>Nuevo estado</span>
@@ -57,7 +63,7 @@
     </aside>
   </section>
 
-  <section class="notes-grid">
+  <section class="notes-grid notes-grid-followup">
     <article class="panel">
       <h2>Descripción</h2>
       <p class="detail-text">{{ incidencia.descripcion }}</p>

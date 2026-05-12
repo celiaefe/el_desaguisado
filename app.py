@@ -15,9 +15,31 @@ INSTANCE_DIR = BASE_DIR / "instance"
 DEFAULT_DB_PATH = INSTANCE_DIR / "el_desaguisado.db"
 DEFAULT_UPLOADS = BASE_DIR / "static" / "uploads"
 VERCEL_TMP_DIR = Path("/tmp")
-LOCAL_SQLITE_COLUMNS = {
-    "fecha_compra": "DATE",
-    "unidades_compradas": "INTEGER",
+OPTIONAL_INCIDENCIA_COLUMNS = {
+    "fecha_compra": {
+        "sqlite": "DATE",
+        "postgresql": "DATE",
+    },
+    "unidades_compradas": {
+        "sqlite": "INTEGER",
+        "postgresql": "INTEGER",
+    },
+    "transportista": {
+        "sqlite": "VARCHAR(120)",
+        "postgresql": "VARCHAR(120)",
+    },
+    "numero_pedido": {
+        "sqlite": "VARCHAR(120)",
+        "postgresql": "VARCHAR(120)",
+    },
+    "fecha_deteccion": {
+        "sqlite": "DATE",
+        "postgresql": "DATE",
+    },
+    "origen_incidencia": {
+        "sqlite": "VARCHAR(80)",
+        "postgresql": "VARCHAR(80)",
+    },
 }
 
 db = SQLAlchemy()
@@ -27,9 +49,13 @@ TIPOS_INCIDENCIA = [
     "Producto deteriorado",
     "Error de pedido",
     "Falta de stock",
+    "Pedido no servido por falta de stock",
+    "Pedido incompleto",
     "Incidencia de lote",
     "Envase dañado",
+    "Incidencia logística",
     "Reclamación cliente",
+    "Incidencia interna",
     "Otro",
 ]
 ESTADOS_INCIDENCIA = [
@@ -40,6 +66,14 @@ ESTADOS_INCIDENCIA = [
     "Cerrada",
 ]
 PRIORIDADES_INCIDENCIA = ["Baja", "Media", "Alta", "Urgente"]
+ORIGENES_INCIDENCIA = [
+    "Interno",
+    "Tienda",
+    "Cliente",
+    "Transporte",
+    "Comercial",
+    "Otro",
+]
 ESTADO_BADGE_CLASSES = {
     "Nueva": "nueva",
     "En revisión": "en-revision",
@@ -68,9 +102,13 @@ class Incidencia(db.Model):
     )
     fecha_incidencia = db.Column(db.Date, nullable=False, default=date.today)
     fecha_compra = db.Column(db.Date)
+    fecha_deteccion = db.Column(db.Date)
     tienda = db.Column(db.String(150), nullable=False)
     producto = db.Column(db.String(150), nullable=False)
     lote = db.Column(db.String(100))
+    transportista = db.Column(db.String(120))
+    numero_pedido = db.Column(db.String(120))
+    origen_incidencia = db.Column(db.String(80))
     unidades_compradas = db.Column(db.Integer)
     unidades_afectadas = db.Column(db.Integer, nullable=False, default=1)
     tipo_incidencia = db.Column(db.String(100), nullable=False)
@@ -153,6 +191,9 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
     tienda = clean_text(form_data.get("tienda", ""), 150)
     producto = clean_text(form_data.get("producto", ""), 150)
     lote = clean_text(form_data.get("lote", ""), 100)
+    transportista = clean_text(form_data.get("transportista", ""), 120)
+    numero_pedido = clean_text(form_data.get("numero_pedido", ""), 120)
+    origen_incidencia = clean_text(form_data.get("origen_incidencia", ""), 80)
     tipo_incidencia = clean_text(form_data.get("tipo_incidencia", ""), 100)
     descripcion = form_data.get("descripcion", "").strip()
     estado = clean_text(form_data.get("estado", ""), 50) or "Nueva"
@@ -166,6 +207,9 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
     )
     fecha_compra = parse_optional_date_field(
         form_data.get("fecha_compra", ""), "fecha_compra", errors
+    )
+    fecha_deteccion = parse_optional_date_field(
+        form_data.get("fecha_deteccion", ""), "fecha_deteccion", errors
     )
     fecha_cierre = parse_optional_date_field(
         form_data.get("fecha_cierre", ""), "fecha_cierre", errors
@@ -188,6 +232,8 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         errors.append("Selecciona un estado válido.")
     if prioridad not in PRIORIDADES_INCIDENCIA:
         errors.append("Selecciona una prioridad válida.")
+    if origen_incidencia and origen_incidencia not in ORIGENES_INCIDENCIA:
+        errors.append("Selecciona un origen de incidencia válido.")
 
     unidades_raw = form_data.get("unidades_afectadas", "").strip()
     try:
@@ -210,9 +256,13 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
     data = {
         "fecha_incidencia": fecha_incidencia,
         "fecha_compra": fecha_compra,
+        "fecha_deteccion": fecha_deteccion,
         "tienda": tienda,
         "producto": producto,
         "lote": lote or None,
+        "transportista": transportista or None,
+        "numero_pedido": numero_pedido or None,
+        "origen_incidencia": origen_incidencia or None,
         "unidades_compradas": unidades_compradas,
         "unidades_afectadas": unidades_afectadas,
         "tipo_incidencia": tipo_incidencia,
@@ -268,13 +318,14 @@ def create_tables(app: Flask) -> None:
 
     with app.app_context():
         db.create_all()
-        ensure_local_sqlite_columns()
+        ensure_optional_incidencia_columns()
 
 
-def ensure_local_sqlite_columns() -> None:
-    """Añade columnas opcionales nuevas en SQLite local si la tabla ya existia."""
+def ensure_optional_incidencia_columns() -> None:
+    """Añade columnas opcionales nuevas si la tabla ya existia."""
 
-    if db.engine.dialect.name != "sqlite":
+    dialect_name = db.engine.dialect.name
+    if dialect_name not in {"sqlite", "postgresql"}:
         return
     if not inspect(db.engine).has_table(Incidencia.__tablename__):
         return
@@ -282,8 +333,9 @@ def ensure_local_sqlite_columns() -> None:
     existing_columns = {
         column["name"] for column in inspect(db.engine).get_columns(Incidencia.__tablename__)
     }
-    for column_name, column_type in LOCAL_SQLITE_COLUMNS.items():
+    for column_name, column_types in OPTIONAL_INCIDENCIA_COLUMNS.items():
         if column_name not in existing_columns:
+            column_type = column_types[dialect_name]
             db.session.execute(
                 text(
                     f"ALTER TABLE {Incidencia.__tablename__} "
@@ -298,7 +350,7 @@ def render_incidencia_form(template_name: str, incidencia=None, form_data=None):
 
     return render_template(
         template_name,
-        app_name="El Desaguisado",
+        app_name="Entre Lotes",
         incidencia=incidencia,
         form_data=form_data,
     )
@@ -331,6 +383,9 @@ def build_incidencias_query(filters: dict):
                 Incidencia.tienda.ilike(search),
                 Incidencia.producto.ilike(search),
                 Incidencia.lote.ilike(search),
+                Incidencia.transportista.ilike(search),
+                Incidencia.numero_pedido.ilike(search),
+                Incidencia.origen_incidencia.ilike(search),
                 Incidencia.descripcion.ilike(search),
                 Incidencia.responsable.ilike(search),
             )
@@ -399,6 +454,7 @@ def create_app() -> Flask:
             "tipos_incidencia": TIPOS_INCIDENCIA,
             "estados_incidencia": ESTADOS_INCIDENCIA,
             "prioridades_incidencia": PRIORIDADES_INCIDENCIA,
+            "origenes_incidencia": ORIGENES_INCIDENCIA,
             "estado_badge_class": lambda value: badge_class(
                 value, ESTADO_BADGE_CLASSES
             ),
@@ -424,7 +480,7 @@ def create_app() -> Flask:
         )
         return render_template(
             "dashboard.html",
-            app_name="El Desaguisado",
+            app_name="Entre Lotes",
             total=total,
             nuevas=nuevas,
             abiertas=abiertas,
@@ -438,7 +494,7 @@ def create_app() -> Flask:
         incidencias = build_incidencias_query(filters).all()
         return render_template(
             "incidencias.html",
-            app_name="El Desaguisado",
+            app_name="Entre Lotes",
             incidencias=incidencias,
             filters=filters,
         )
@@ -456,9 +512,13 @@ def create_app() -> Flask:
                 "Fecha registro",
                 "Fecha incidencia",
                 "Fecha compra",
+                "Fecha detección",
                 "Tienda",
                 "Producto",
                 "Lote",
+                "Transportista",
+                "Número pedido",
+                "Origen incidencia",
                 "Unidades compradas",
                 "Unidades afectadas",
                 "Tipo de incidencia",
@@ -479,9 +539,13 @@ def create_app() -> Flask:
                     format_export_datetime(incidencia.fecha_registro),
                     format_export_date(incidencia.fecha_incidencia),
                     format_export_date(incidencia.fecha_compra),
+                    format_export_date(incidencia.fecha_deteccion),
                     incidencia.tienda,
                     incidencia.producto,
                     incidencia.lote or "",
+                    incidencia.transportista or "",
+                    incidencia.numero_pedido or "",
+                    incidencia.origen_incidencia or "",
                     incidencia.unidades_compradas or "",
                     incidencia.unidades_afectadas,
                     incidencia.tipo_incidencia,
@@ -495,7 +559,7 @@ def create_app() -> Flask:
                 ]
             )
 
-        filename = f"incidencias_el_desaguisado_{date.today().isoformat()}.csv"
+        filename = f"incidencias_entre_lotes_{date.today().isoformat()}.csv"
         return Response(
             "\ufeff" + output.getvalue(),
             mimetype="text/csv",
@@ -528,7 +592,7 @@ def create_app() -> Flask:
         incidencia = db.get_or_404(Incidencia, id)
         return render_template(
             "detalle_incidencia.html",
-            app_name="El Desaguisado",
+            app_name="Entre Lotes",
             incidencia=incidencia,
         )
 
