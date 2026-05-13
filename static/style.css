@@ -100,19 +100,10 @@ a {
 }
 
 .brand-mark {
-  display: grid;
   width: 50px;
   height: 50px;
   flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid rgba(218, 194, 143, 0.56);
-  border-radius: 14px;
-  background: linear-gradient(145deg, #ead8ac, #a98748);
-  color: #263321;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.02rem;
-  font-weight: 800;
-  box-shadow: inset 0 1px 0 rgba(255, 253, 247, 0.42);
+  object-fit: contain;
 }
 
 .sidebar-nav {
