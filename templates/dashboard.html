@@ -34,41 +34,23 @@
   <section class="panel">
     <div class="panel-head">
       <div>
-        <h2>Últimas 5 incidencias</h2>
-        <p>Actividad reciente del equipo de seguimiento.</p>
+        <h2>Incidencias por tipo</h2>
+        <p>Resumen de los tipos de incidencia principales.</p>
       </div>
-      <a class="text-link" href="{{ url_for('incidencias_list') }}">Ver todas</a>
     </div>
 
-    {% if recientes %}
-      <div class="table-wrap">
-        <table class="compact-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Fecha</th>
-              <th>Tienda</th>
-              <th>Producto</th>
-              <th>Estado</th>
-              <th>Prioridad</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for incidencia in recientes %}
-              <tr>
-                <td><a class="text-link" href="{{ url_for('incidencia_detalle', id=incidencia.id) }}">#{{ incidencia.id }}</a></td>
-                <td>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</td>
-                <td>{{ incidencia.tienda }}</td>
-                <td>{{ incidencia.producto }}</td>
-                <td><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></td>
-                <td><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <p class="empty-state">Todavía no hay incidencias registradas.</p>
-    {% endif %}
+    <div class="type-breakdown" aria-label="Incidencias por tipo">
+      {% for tipo in incidencias_por_tipo %}
+        <article class="type-breakdown-item">
+          <div class="type-breakdown-row">
+            <span>{{ tipo.nombre }}</span>
+            <strong>{{ tipo.total }}</strong>
+          </div>
+          <div class="type-breakdown-track" aria-hidden="true">
+            <span style="width: {{ tipo.porcentaje }}%;"></span>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
   </section>
 {% endblock %}

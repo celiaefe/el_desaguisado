@@ -27,7 +27,8 @@
         <div><dt>Tienda</dt><dd>{{ incidencia.tienda }}</dd></div>
         <div><dt>Producto</dt><dd>{{ incidencia.producto }}</dd></div>
         <div><dt>Lote</dt><dd>{{ incidencia.lote or "-" }}</dd></div>
-        <div><dt>Número pedido</dt><dd>{{ incidencia.numero_pedido or "-" }}</dd></div>
+        <div><dt>Nº de albarán</dt><dd>{{ incidencia.numero_pedido or "-" }}</dd></div>
+        <div><dt>Nº de bultos</dt><dd>{{ incidencia.numero_bultos or "-" }}</dd></div>
         <div><dt>Transportista</dt><dd>{{ incidencia.transportista or "-" }}</dd></div>
         <div><dt>Origen</dt><dd>{{ incidencia.origen_incidencia or "-" }}</dd></div>
         <div><dt>Unidades compradas</dt><dd>{{ incidencia.unidades_compradas or "-" }}</dd></div>
@@ -46,7 +47,6 @@
       <dl class="detail-list detail-list-single">
         <div><dt>Estado</dt><dd><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></dd></div>
         <div><dt>Prioridad</dt><dd><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></dd></div>
-        <div><dt>Responsable</dt><dd>{{ incidencia.responsable or "-" }}</dd></div>
         <div><dt>Fecha cierre</dt><dd>{{ incidencia.fecha_cierre.strftime("%d/%m/%Y") if incidencia.fecha_cierre else "-" }}</dd></div>
       </dl>
       <form method="post" action="{{ url_for('incidencia_cambiar_estado', id=incidencia.id) }}" class="form-stack">
@@ -69,44 +69,8 @@
       <p class="detail-text">{{ incidencia.descripcion }}</p>
     </article>
     <article class="panel">
-      <h2>Observaciones internas</h2>
-      <p class="detail-text">{{ incidencia.observaciones_internas or "Sin observaciones internas." }}</p>
-    </article>
-    <article class="panel">
       <h2>Resolución</h2>
       <p class="detail-text">{{ incidencia.resolucion or "Todavía no se ha documentado una resolución." }}</p>
     </article>
-  </section>
-
-  <section class="panel followup-panel">
-    <div class="panel-head">
-      <div>
-        <h2>Seguimiento interno</h2>
-        <p>Comentarios operativos añadidos por el equipo.</p>
-      </div>
-    </div>
-
-    <form method="post" action="{{ url_for('incidencia_agregar_seguimiento', id=incidencia.id) }}" class="form-stack followup-form">
-      <label class="field">
-        <span>Nuevo comentario</span>
-        <textarea name="comentario" rows="4" required placeholder="Añade una actualización interna sobre esta incidencia"></textarea>
-      </label>
-      <button class="button" type="submit">Añadir comentario</button>
-    </form>
-
-    {% if seguimientos %}
-      <div class="followup-list">
-        {% for seguimiento in seguimientos %}
-          <article class="followup-item">
-            <time datetime="{{ seguimiento.fecha_creacion.isoformat() }}">
-              {{ seguimiento.fecha_creacion.strftime("%d/%m/%Y %H:%M") }}
-            </time>
-            <p>{{ seguimiento.comentario }}</p>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="empty-state">Todavía no hay comentarios de seguimiento interno.</p>
-    {% endif %}
   </section>
 {% endblock %}

@@ -43,6 +43,10 @@ OPTIONAL_INCIDENCIA_COLUMNS = {
         "sqlite": "VARCHAR(120)",
         "postgresql": "VARCHAR(120)",
     },
+    "numero_bultos": {
+        "sqlite": "INTEGER",
+        "postgresql": "INTEGER",
+    },
     "fecha_deteccion": {
         "sqlite": "DATE",
         "postgresql": "DATE",
@@ -69,6 +73,12 @@ TIPOS_INCIDENCIA = [
     "Reclamación cliente",
     "Incidencia interna",
     "Otro",
+]
+TIPOS_DASHBOARD = [
+    "Falta de stock",
+    "Pedido incompleto",
+    "Rotura en envío",
+    "Producto deteriorado",
 ]
 ESTADOS_INCIDENCIA = [
     "Nueva",
@@ -101,6 +111,17 @@ PRIORIDAD_BADGE_CLASSES = {
 }
 ESTADOS_ABIERTOS = ["Nueva", "En revisión", "Pendiente"]
 ESTADOS_CON_CIERRE = {"Resuelta", "Cerrada"}
+SORTABLE_INCIDENCIA_COLUMNS = [
+    ("id", "ID"),
+    ("fecha_incidencia", "Fecha"),
+    ("tienda", "Tienda"),
+    ("producto", "Producto"),
+    ("numero_pedido", "Albarán"),
+    ("transportista", "Transportista"),
+    ("tipo_incidencia", "Tipo"),
+    ("estado", "Estado"),
+    ("prioridad", "Prioridad"),
+]
 
 
 class Usuario(UserMixin, db.Model):
@@ -144,6 +165,7 @@ class Incidencia(db.Model):
     lote = db.Column(db.String(100))
     transportista = db.Column(db.String(120))
     numero_pedido = db.Column(db.String(120))
+    numero_bultos = db.Column(db.Integer)
     origen_incidencia = db.Column(db.String(80))
     unidades_compradas = db.Column(db.Integer)
     unidades_afectadas = db.Column(db.Integer, nullable=False, default=1)
@@ -293,6 +315,11 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         "unidades_compradas",
         errors,
     )
+    numero_bultos = parse_optional_positive_int(
+        form_data.get("numero_bultos", "").strip(),
+        "Nº de bultos",
+        errors,
+    )
 
     if not tienda:
         errors.append("La tienda es obligatoria.")
@@ -336,6 +363,7 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         "lote": lote or None,
         "transportista": transportista or None,
         "numero_pedido": numero_pedido or None,
+        "numero_bultos": numero_bultos,
         "origen_incidencia": origen_incidencia or None,
         "unidades_compradas": unidades_compradas,
         "unidades_afectadas": unidades_afectadas,
@@ -446,6 +474,15 @@ def render_incidencia_form(template_name: str, incidencia=None, form_data=None):
 def get_incidencia_filters(args) -> dict:
     """Normaliza los filtros del listado de incidencias."""
 
+    allowed_sort_keys = {key for key, _label in SORTABLE_INCIDENCIA_COLUMNS}
+    sort_key = clean_text(args.get("sort", ""), 50)
+    direction = clean_text(args.get("direction", ""), 10).lower()
+
+    if sort_key not in allowed_sort_keys:
+        sort_key = "fecha_incidencia"
+    if direction not in {"asc", "desc"}:
+        direction = "desc"
+
     return {
         "q": clean_text(args.get("q", ""), 200),
         "tienda": clean_text(args.get("tienda", ""), 150),
@@ -459,7 +496,37 @@ def get_incidencia_filters(args) -> dict:
         "tipo_incidencia": clean_text(args.get("tipo_incidencia", ""), 100),
         "fecha_desde": args.get("fecha_desde", "").strip(),
         "fecha_hasta": args.get("fecha_hasta", "").strip(),
+        "sort": sort_key,
+        "direction": direction,
     }
+
+
+def build_sort_links(filters: dict) -> list[dict]:
+    """Construye enlaces de ordenación preservando los filtros activos."""
+
+    params = {key: value for key, value in filters.items() if value}
+    links = []
+
+    for key, label in SORTABLE_INCIDENCIA_COLUMNS:
+        is_active = filters["sort"] == key
+        next_direction = "asc"
+        if is_active and filters["direction"] == "asc":
+            next_direction = "desc"
+
+        link_params = params.copy()
+        link_params["sort"] = key
+        link_params["direction"] = next_direction
+        links.append(
+            {
+                "key": key,
+                "label": label,
+                "url": url_for("incidencias_list", **link_params),
+                "active": is_active,
+                "direction": filters["direction"] if is_active else "",
+            }
+        )
+
+    return links
 
 
 def build_incidencias_query(filters: dict):
@@ -513,7 +580,21 @@ def build_incidencias_query(filters: dict):
     if fecha_hasta:
         query = query.filter(Incidencia.fecha_incidencia <= fecha_hasta)
 
-    return query.order_by(Incidencia.fecha_registro.desc())
+    sort_columns = {
+        "id": Incidencia.id,
+        "fecha_incidencia": Incidencia.fecha_incidencia,
+        "tienda": Incidencia.tienda,
+        "producto": Incidencia.producto,
+        "numero_pedido": Incidencia.numero_pedido,
+        "transportista": Incidencia.transportista,
+        "tipo_incidencia": Incidencia.tipo_incidencia,
+        "estado": Incidencia.estado,
+        "prioridad": Incidencia.prioridad,
+    }
+    sort_column = sort_columns.get(filters["sort"], Incidencia.fecha_incidencia)
+    sort_expression = sort_column.asc() if filters["direction"] == "asc" else sort_column.desc()
+
+    return query.order_by(sort_expression, Incidencia.id.desc())
 
 
 def format_export_date(value) -> str:
@@ -530,6 +611,87 @@ def format_export_datetime(value) -> str:
     if not value:
         return ""
     return value.strftime("%Y-%m-%d %H:%M")
+
+
+def parse_selected_incidencia_ids(values) -> list[int]:
+    """Normaliza IDs enviados desde acciones masivas."""
+
+    selected_ids = []
+    for value in values:
+        try:
+            selected_ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return selected_ids
+
+
+def build_incidencias_export_response(incidencias, suffix: str = "") -> Response:
+    """Construye la descarga Excel de incidencias."""
+
+    rows = [
+        [
+            "ID",
+            "Fecha registro",
+            "Fecha incidencia",
+            "Fecha compra",
+            "Fecha detección",
+            "Tienda",
+            "Producto",
+            "Lote",
+            "Transportista",
+            "Nº de albarán",
+            "Nº de bultos",
+            "Origen incidencia",
+            "Unidades compradas",
+            "Unidades afectadas",
+            "Tipo de incidencia",
+            "Descripción",
+            "Estado",
+            "Prioridad",
+            "Responsable",
+            "Observaciones internas",
+            "Resolución",
+            "Fecha cierre",
+        ]
+    ]
+
+    for incidencia in incidencias:
+        rows.append(
+            [
+                incidencia.id,
+                format_export_datetime(incidencia.fecha_registro),
+                format_export_date(incidencia.fecha_incidencia),
+                format_export_date(incidencia.fecha_compra),
+                format_export_date(incidencia.fecha_deteccion),
+                incidencia.tienda,
+                incidencia.producto,
+                incidencia.lote or "",
+                incidencia.transportista or "",
+                incidencia.numero_pedido or "",
+                incidencia.numero_bultos or "",
+                incidencia.origen_incidencia or "",
+                incidencia.unidades_compradas or "",
+                incidencia.unidades_afectadas,
+                incidencia.tipo_incidencia,
+                incidencia.descripcion,
+                incidencia.estado,
+                incidencia.prioridad,
+                incidencia.responsable or "",
+                incidencia.observaciones_internas or "",
+                incidencia.resolucion or "",
+                format_export_date(incidencia.fecha_cierre),
+            ]
+        )
+
+    filename_suffix = f"_{suffix}" if suffix else ""
+    filename = f"incidencias_entre_lotes{filename_suffix}_{date.today().isoformat()}.xlsx"
+    return Response(
+        build_excel_workbook(rows),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 def excel_column_name(index: int) -> str:
@@ -731,9 +893,26 @@ def create_app() -> Flask:
             Incidencia.estado.in_(ESTADOS_ABIERTOS)
         ).count()
         resueltas = Incidencia.query.filter_by(estado="Resuelta").count()
-        recientes = (
-            Incidencia.query.order_by(Incidencia.fecha_registro.desc()).limit(5).all()
+        conteos_por_tipo = dict(
+            db.session.query(Incidencia.tipo_incidencia, db.func.count(Incidencia.id))
+            .filter(Incidencia.tipo_incidencia.in_(TIPOS_DASHBOARD))
+            .group_by(Incidencia.tipo_incidencia)
+            .all()
         )
+        max_tipo_count = max(conteos_por_tipo.values(), default=0)
+        incidencias_por_tipo = []
+        for tipo in TIPOS_DASHBOARD:
+            count = conteos_por_tipo.get(tipo, 0)
+            incidencias_por_tipo.append(
+                {
+                    "nombre": tipo,
+                    "total": count,
+                    "porcentaje": round((count / max_tipo_count) * 100)
+                    if max_tipo_count
+                    else 0,
+                }
+            )
+
         return render_template(
             "dashboard.html",
             app_name="Entre Lotes",
@@ -741,7 +920,7 @@ def create_app() -> Flask:
             nuevas=nuevas,
             abiertas=abiertas,
             resueltas=resueltas,
-            recientes=recientes,
+            incidencias_por_tipo=incidencias_por_tipo,
         )
 
     @app.route("/incidencias")
@@ -754,6 +933,7 @@ def create_app() -> Flask:
             app_name="Entre Lotes",
             incidencias=incidencias,
             filters=filters,
+            sort_links=build_sort_links(filters),
         )
 
     @app.get("/incidencias/exportar")
@@ -761,67 +941,37 @@ def create_app() -> Flask:
     def incidencias_exportar():
         filters = get_incidencia_filters(request.args)
         incidencias = build_incidencias_query(filters).all()
-        rows = [
-            [
-                "ID",
-                "Fecha registro",
-                "Fecha incidencia",
-                "Fecha compra",
-                "Fecha detección",
-                "Tienda",
-                "Producto",
-                "Lote",
-                "Transportista",
-                "Número pedido",
-                "Origen incidencia",
-                "Unidades compradas",
-                "Unidades afectadas",
-                "Tipo de incidencia",
-                "Descripción",
-                "Estado",
-                "Prioridad",
-                "Responsable",
-                "Observaciones internas",
-                "Resolución",
-                "Fecha cierre",
-            ]
-        ]
+        return build_incidencias_export_response(incidencias)
 
-        for incidencia in incidencias:
-            rows.append(
-                [
-                    incidencia.id,
-                    format_export_datetime(incidencia.fecha_registro),
-                    format_export_date(incidencia.fecha_incidencia),
-                    format_export_date(incidencia.fecha_compra),
-                    format_export_date(incidencia.fecha_deteccion),
-                    incidencia.tienda,
-                    incidencia.producto,
-                    incidencia.lote or "",
-                    incidencia.transportista or "",
-                    incidencia.numero_pedido or "",
-                    incidencia.origen_incidencia or "",
-                    incidencia.unidades_compradas or "",
-                    incidencia.unidades_afectadas,
-                    incidencia.tipo_incidencia,
-                    incidencia.descripcion,
-                    incidencia.estado,
-                    incidencia.prioridad,
-                    incidencia.responsable or "",
-                    incidencia.observaciones_internas or "",
-                    incidencia.resolucion or "",
-                    format_export_date(incidencia.fecha_cierre),
-                ]
-            )
+    @app.post("/incidencias/acciones")
+    @login_required
+    def incidencias_acciones_masivas():
+        selected_ids = parse_selected_incidencia_ids(request.form.getlist("ids"))
+        action = clean_text(request.form.get("bulk_action", ""), 30)
 
-        filename = f"incidencias_entre_lotes_{date.today().isoformat()}.xlsx"
-        return Response(
-            build_excel_workbook(rows),
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
-            },
+        if not selected_ids:
+            flash("Selecciona al menos una incidencia.", "error")
+            return redirect(url_for("incidencias_list"))
+
+        incidencias = (
+            Incidencia.query.filter(Incidencia.id.in_(selected_ids))
+            .order_by(Incidencia.id.desc())
+            .all()
         )
+
+        if action == "export":
+            return build_incidencias_export_response(incidencias, "seleccionadas")
+
+        if action == "delete":
+            deleted_count = len(incidencias)
+            for incidencia in incidencias:
+                db.session.delete(incidencia)
+            db.session.commit()
+            flash(f"Se han eliminado {deleted_count} incidencias.", "success")
+            return redirect(url_for("incidencias_list"))
+
+        flash("Selecciona una acción válida.", "error")
+        return redirect(url_for("incidencias_list"))
 
     @app.route("/incidencias/nueva", methods=["GET", "POST"])
     @login_required
@@ -847,16 +997,10 @@ def create_app() -> Flask:
     @login_required
     def incidencia_detalle(id: int):
         incidencia = db.get_or_404(Incidencia, id)
-        seguimientos = (
-            SeguimientoIncidencia.query.filter_by(incidencia_id=incidencia.id)
-            .order_by(SeguimientoIncidencia.fecha_creacion.desc())
-            .all()
-        )
         return render_template(
             "detalle_incidencia.html",
             app_name="Entre Lotes",
             incidencia=incidencia,
-            seguimientos=seguimientos,
         )
 
     @app.post("/incidencias/<int:id>/seguimiento")
@@ -902,6 +1046,15 @@ def create_app() -> Flask:
             return redirect(url_for("incidencia_detalle", id=incidencia.id))
 
         return render_incidencia_form("editar_incidencia.html", incidencia=incidencia)
+
+    @app.post("/incidencias/<int:id>/eliminar")
+    @login_required
+    def incidencia_eliminar(id: int):
+        incidencia = db.get_or_404(Incidencia, id)
+        db.session.delete(incidencia)
+        db.session.commit()
+        flash("La incidencia se ha eliminado correctamente.", "success")
+        return redirect(url_for("incidencias_list"))
 
     @app.post("/incidencias/<int:id>/estado")
     @login_required
