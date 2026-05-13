@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Entre Lotes{% endblock %}</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='brand-mark.png') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20260513c') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20260513d') }}">
   </head>
   <body>
     <div class="app-shell">
@@ -23,17 +23,22 @@
         </a>
 
         <nav class="sidebar-nav">
-          <a class="{% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
+          <a class="{% if request.endpoint == 'dashboard' %}is-active{% endif %}" href="{{ url_for('dashboard') }}">Panel inicial</a>
           <a class="{% if request.endpoint in ['incidencias_list', 'incidencia_detalle', 'incidencia_editar'] %}is-active{% endif %}" href="{{ url_for('incidencias_list') }}">Incidencias</a>
           <a class="{% if request.endpoint == 'incidencia_nueva' %}is-active{% endif %}" href="{{ url_for('incidencia_nueva') }}">Nueva incidencia</a>
         </nav>
 
         {% if current_user.is_authenticated %}
-          <div class="sidebar-user">
-            <span>{{ current_user.nombre }}</span>
-            <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
-            <a href="{{ url_for('logout') }}">Cerrar sesión</a>
-          </div>
+          <details class="sidebar-user">
+            <summary>
+              <span>{{ current_user.nombre or "Administrador" }}</span>
+            </summary>
+            <div class="sidebar-user-menu">
+              <span class="sidebar-user-role">Administrador</span>
+              <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
+              <a href="{{ url_for('logout') }}">Cerrar sesión</a>
+            </div>
+          </details>
         {% endif %}
       </aside>
 

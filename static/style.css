@@ -59,6 +59,8 @@ a {
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -152,30 +154,74 @@ a {
 }
 
 .sidebar-user {
-  display: grid;
-  gap: 0.55rem;
-  margin-top: 1.6rem;
-  padding: 1rem;
+  margin-top: auto;
   border: 1px solid rgba(46, 37, 31, 0.16);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.20);
+  overflow: hidden;
 }
 
-.sidebar-user span {
-  color: #2E251F;
-  font-size: 0.9rem;
-  font-weight: 850;
+.sidebar-user summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sidebar-user summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-user summary::after {
+  content: "▾";
+  color: rgba(46, 37, 31, 0.7);
+  font-size: 0.86rem;
+  transition: transform 0.16s ease;
+}
+
+.sidebar-user[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.sidebar-user-menu {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0 1rem 0.95rem;
+  border-top: 1px solid rgba(46, 37, 31, 0.12);
+}
+
+.sidebar-user-role {
+  color: rgba(46, 37, 31, 0.72);
+  font-size: 0.77rem;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .sidebar-user a {
-  color: rgba(46, 37, 31, 0.76);
+  padding: 0.5rem 0.55rem;
+  border: 1px solid rgba(46, 37, 31, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.24);
+  color: rgba(46, 37, 31, 0.8);
   font-size: 0.84rem;
   font-weight: 760;
   text-decoration: none;
 }
 
 .sidebar-user a:hover {
+  border-color: rgba(46, 37, 31, 0.24);
+  background: rgba(255, 255, 255, 0.30);
   color: #2E251F;
+}
+
+.sidebar-user span {
+  color: #2E251F;
+  font-size: 0.9rem;
+  font-weight: 850;
 }
 
 .main-area {
@@ -977,6 +1023,10 @@ tbody tr:last-child td {
   .sidebar {
     position: static;
     height: auto;
+  }
+
+  .sidebar-user {
+    margin-top: 1.2rem;
   }
 
   .brand-lockup {
