@@ -35,8 +35,10 @@
               <span>{{ current_user.nombre or "Administrador" }}</span>
             </summary>
             <div class="sidebar-user-menu">
-              <span class="sidebar-user-role">Administrador</span>
-              <a href="{{ url_for('usuarios_list') }}">Usuarios</a>
+              <span class="sidebar-user-role">{{ "Administrador" if is_admin_user else "Usuario" }}</span>
+              {% if is_admin_user %}
+                <a href="{{ url_for('usuarios_list') }}">Usuarios</a>
+              {% endif %}
               <a href="{{ url_for('cambiar_password') }}">Cambiar contraseña</a>
               <a href="{{ url_for('logout') }}">Cerrar sesión</a>
             </div>

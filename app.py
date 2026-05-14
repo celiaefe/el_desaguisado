@@ -1121,6 +1121,9 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_form_choices():
+        is_admin_user = (
+            current_user.is_authenticated and getattr(current_user, "username", "") == "admin"
+        )
         return {
             "tipos_incidencia": TIPOS_INCIDENCIA,
             "estados_incidencia": ESTADOS_INCIDENCIA,
@@ -1129,6 +1132,7 @@ def create_app() -> Flask:
             "transportistas": TRANSPORTISTAS,
             "tipos_cliente": TIPOS_CLIENTE,
             "productos_catalogo": app.config.get("PRODUCTOS_CATALOGO", []),
+            "is_admin_user": is_admin_user,
             "estado_badge_class": lambda value: badge_class(
                 value, ESTADO_BADGE_CLASSES
             ),
@@ -1222,6 +1226,9 @@ def create_app() -> Flask:
     @app.get("/usuarios")
     @login_required
     def usuarios_list():
+        if current_user.username != "admin":
+            flash("No tienes permiso para acceder a usuarios.", "error")
+            return redirect(url_for("dashboard"))
         usuarios = Usuario.query.order_by(Usuario.nombre.asc(), Usuario.id.asc()).all()
         return render_template(
             "usuarios.html",
@@ -1232,6 +1239,9 @@ def create_app() -> Flask:
     @app.route("/usuarios/nuevo", methods=["GET", "POST"])
     @login_required
     def usuario_nuevo():
+        if current_user.username != "admin":
+            flash("No tienes permiso para gestionar usuarios.", "error")
+            return redirect(url_for("dashboard"))
         if request.method == "POST":
             nombre = clean_text(request.form.get("nombre", ""), 120)
             username = clean_text(request.form.get("username", ""), 80).lower()
