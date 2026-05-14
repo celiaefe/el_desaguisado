@@ -89,7 +89,7 @@
     {% endif %}
   </section>
 
-  {% if incidencias_por_tipo_cliente %}
+  {% if incidencias_por_tipo_cliente or incidencias_por_comunidad %}
     <section class="panel">
       <div class="panel-head">
         <div>
@@ -97,15 +97,43 @@
         </div>
       </div>
       <div class="type-breakdown" aria-label="Incidencias por tipo de cliente">
-        {% for tipo_cliente, total in incidencias_por_tipo_cliente.items() %}
+        {% for item in incidencias_por_tipo_cliente %}
           <article class="type-breakdown-item">
             <div class="type-breakdown-row">
-              <span>{{ tipo_cliente }}</span>
-              <strong>{{ total }}</strong>
+              <span>{{ item.nombre }}</span>
+              <strong>{{ item.total }}</strong>
+            </div>
+            <div class="type-breakdown-track" aria-hidden="true">
+              <span style="width: {{ item.porcentaje_barra }}%;"></span>
             </div>
           </article>
         {% endfor %}
       </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Incidencias por comunidad autónoma</h2>
+        </div>
+      </div>
+      <div class="type-breakdown" aria-label="Incidencias por comunidad autónoma">
+        {% for item in incidencias_por_comunidad %}
+          <article class="type-breakdown-item">
+            <div class="type-breakdown-row">
+              <span>{{ item.nombre }}</span>
+              <strong>{{ item.total }}</strong>
+            </div>
+            <div class="type-breakdown-track" aria-hidden="true">
+              <span style="width: {{ item.porcentaje_barra }}%;"></span>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% else %}
+    <section class="panel">
+      <p class="empty-state">Todavía no hay incidencias vinculadas a contactos.</p>
     </section>
   {% endif %}
 {% endblock %}

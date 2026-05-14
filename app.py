@@ -1199,16 +1199,65 @@ def create_app() -> Flask:
                     else 0,
                 }
             )
-        incidencias_por_tipo_cliente = dict(
-            db.session.query(Contacto.tipo_cliente, db.func.count(Incidencia.id))
+        conteos_tipo_cliente = (
+            db.session.query(
+                db.func.coalesce(db.func.nullif(Contacto.tipo_cliente, ""), "Sin tipo"),
+                db.func.count(Incidencia.id),
+            )
             .join(Incidencia, Incidencia.contacto_id == Contacto.id)
-            .filter(Contacto.tipo_cliente.isnot(None))
-            .filter(Contacto.tipo_cliente != "")
-            .group_by(Contacto.tipo_cliente)
+            .group_by(db.func.coalesce(db.func.nullif(Contacto.tipo_cliente, ""), "Sin tipo"))
             .order_by(db.func.count(Incidencia.id).desc())
-            .limit(5)
             .all()
         )
+        total_tipo_cliente = sum(total for _nombre, total in conteos_tipo_cliente)
+        max_tipo_cliente = max((total for _nombre, total in conteos_tipo_cliente), default=0)
+        incidencias_por_tipo_cliente = [
+            {
+                "nombre": nombre,
+                "total": total,
+                "porcentaje_total": round((total / total_tipo_cliente) * 100)
+                if total_tipo_cliente
+                else 0,
+                "porcentaje_barra": round((total / max_tipo_cliente) * 100)
+                if max_tipo_cliente
+                else 0,
+            }
+            for nombre, total in conteos_tipo_cliente
+        ]
+        conteos_comunidad = (
+            db.session.query(
+                db.func.coalesce(
+                    db.func.nullif(Contacto.comunidad_autonoma, ""),
+                    "Sin comunidad",
+                ),
+                db.func.count(Incidencia.id),
+            )
+            .join(Incidencia, Incidencia.contacto_id == Contacto.id)
+            .group_by(
+                db.func.coalesce(
+                    db.func.nullif(Contacto.comunidad_autonoma, ""),
+                    "Sin comunidad",
+                )
+            )
+            .order_by(db.func.count(Incidencia.id).desc())
+            .limit(8)
+            .all()
+        )
+        total_comunidad = sum(total for _nombre, total in conteos_comunidad)
+        max_comunidad = max((total for _nombre, total in conteos_comunidad), default=0)
+        incidencias_por_comunidad = [
+            {
+                "nombre": nombre,
+                "total": total,
+                "porcentaje_total": round((total / total_comunidad) * 100)
+                if total_comunidad
+                else 0,
+                "porcentaje_barra": round((total / max_comunidad) * 100)
+                if max_comunidad
+                else 0,
+            }
+            for nombre, total in conteos_comunidad
+        ]
 
         return render_template(
             "dashboard.html",
@@ -1220,6 +1269,7 @@ def create_app() -> Flask:
             incidencias_por_tipo=incidencias_por_tipo,
             incidencias_por_transportista=incidencias_por_transportista,
             incidencias_por_tipo_cliente=incidencias_por_tipo_cliente,
+            incidencias_por_comunidad=incidencias_por_comunidad,
         )
 
     @app.get("/contactos")
