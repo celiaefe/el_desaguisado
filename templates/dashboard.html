@@ -88,4 +88,24 @@
       <p class="empty-state">Aún no hay transportistas informados en las incidencias.</p>
     {% endif %}
   </section>
+
+  {% if incidencias_por_tipo_cliente %}
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Incidencias por tipo de cliente</h2>
+        </div>
+      </div>
+      <div class="type-breakdown" aria-label="Incidencias por tipo de cliente">
+        {% for tipo_cliente, total in incidencias_por_tipo_cliente.items() %}
+          <article class="type-breakdown-item">
+            <div class="type-breakdown-row">
+              <span>{{ tipo_cliente }}</span>
+              <strong>{{ total }}</strong>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
 {% endblock %}

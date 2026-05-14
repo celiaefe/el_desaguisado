@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Editar contacto #{{ contacto.id }} | Entre Lotes{% endblock %}
+{% block eyebrow %}Clientes{% endblock %}
+{% block page_title %}Editar contacto{% endblock %}
+{% block header_actions %}
+  <a class="button button-secondary" href="{{ url_for('contacto_detalle', id=contacto.id) }}">Volver al detalle</a>
+{% endblock %}
+
+{% block content %}
+  <section class="panel form-panel">
+    <form method="post" class="form-stack">
+      {% include "_contacto_form_fields.html" %}
+      <div class="form-actions">
+        <button class="button" type="submit">Guardar cambios</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

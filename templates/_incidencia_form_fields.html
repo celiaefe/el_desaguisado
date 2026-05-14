@@ -37,6 +37,17 @@
       </label>
 
       <label class="field">
+        <span>Contacto vinculado</span>
+        {% set current_contacto_id = form_values.get('contacto_id', incidencia.contacto_id if incidencia else '') %}
+        <select name="contacto_id">
+          <option value="">Sin vincular</option>
+          {% for contacto in contactos_activos %}
+            <option value="{{ contacto.id }}" {% if (current_contacto_id|string) == (contacto.id|string) %}selected{% endif %}>{{ contacto.nombre }}</option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="field">
         <span>Producto</span>
         {% set current_producto = form_values.get('producto', incidencia.producto if incidencia else '') %}
         <input type="text" name="producto" maxlength="150" value="{{ current_producto }}" list="productos-catalogo" autocomplete="off" required>

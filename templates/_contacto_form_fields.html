@@ -1,0 +1,96 @@
+{% set form_values = form_data if form_data else {} %}
+
+<div class="form-sections">
+  <section class="form-section">
+    <div class="form-section-head">
+      <h2>Identificación</h2>
+    </div>
+    <div class="form-grid">
+      <label class="field">
+        <span>Nombre</span>
+        <input type="text" name="nombre" maxlength="150" value="{{ form_values.get('nombre', contacto.nombre if contacto else '') }}" required>
+      </label>
+      <label class="field">
+        <span>Razón social</span>
+        <input type="text" name="razon_social" maxlength="180" value="{{ form_values.get('razon_social', contacto.razon_social if contacto else '') }}">
+      </label>
+      <label class="field">
+        <span>CIF</span>
+        <input type="text" name="cif" maxlength="30" value="{{ form_values.get('cif', contacto.cif if contacto else '') }}">
+      </label>
+      <label class="field">
+        <span>Tipo cliente</span>
+        {% set current_tipo_cliente = form_values.get('tipo_cliente', contacto.tipo_cliente if contacto else '') %}
+        <select name="tipo_cliente">
+          <option value="">Selecciona una opción</option>
+          {% for tipo in tipos_cliente %}
+            <option value="{{ tipo }}" {% if current_tipo_cliente == tipo %}selected{% endif %}>{{ tipo }}</option>
+          {% endfor %}
+          {% if current_tipo_cliente and current_tipo_cliente not in tipos_cliente %}
+            <option value="{{ current_tipo_cliente }}" selected>{{ current_tipo_cliente }}</option>
+          {% endif %}
+        </select>
+      </label>
+      <label class="field field-full">
+        <span>Etiquetas Holded</span>
+        <input type="text" name="etiquetas_holded" maxlength="250" value="{{ form_values.get('etiquetas_holded', contacto.etiquetas_holded if contacto else '') }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-head">
+      <h2>Contacto</h2>
+    </div>
+    <div class="form-grid">
+      <label class="field">
+        <span>Email</span>
+        <input type="email" name="email" maxlength="150" value="{{ form_values.get('email', contacto.email if contacto else '') }}">
+      </label>
+      <label class="field">
+        <span>Teléfono</span>
+        <input type="text" name="telefono" maxlength="50" value="{{ form_values.get('telefono', contacto.telefono if contacto else '') }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-head">
+      <h2>Dirección</h2>
+    </div>
+    <div class="form-grid">
+      <label class="field field-full">
+        <span>Dirección</span>
+        <input type="text" name="direccion" maxlength="220" value="{{ form_values.get('direccion', contacto.direccion if contacto else '') }}">
+      </label>
+      <label class="field">
+        <span>Provincia</span>
+        <input type="text" name="provincia" maxlength="100" value="{{ form_values.get('provincia', contacto.provincia if contacto else '') }}">
+      </label>
+      <label class="field">
+        <span>Código postal</span>
+        <input type="text" name="codigo_postal" maxlength="20" value="{{ form_values.get('codigo_postal', contacto.codigo_postal if contacto else '') }}">
+      </label>
+      <label class="field field-wide">
+        <span>Comunidad autónoma</span>
+        <input type="text" name="comunidad_autonoma" maxlength="120" value="{{ form_values.get('comunidad_autonoma', contacto.comunidad_autonoma if contacto else '') }}">
+      </label>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <div class="form-section-head">
+      <h2>Estado</h2>
+    </div>
+    <div class="form-grid">
+      {% set current_activo = form_values.get('activo', '1' if (contacto.activo if contacto else True) else '') %}
+      <label class="field">
+        <span>Activo</span>
+        <select name="activo">
+          <option value="1" {% if current_activo in ['1', 'on', True, 'true', 'True'] %}selected{% endif %}>Sí</option>
+          <option value="0" {% if current_activo in ['0', False, 'false', 'False'] %}selected{% endif %}>No</option>
+        </select>
+      </label>
+    </div>
+  </section>
+</div>

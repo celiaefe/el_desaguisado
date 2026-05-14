@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Importar contactos | Entre Lotes{% endblock %}
+{% block eyebrow %}Clientes{% endblock %}
+{% block page_title %}Importar contactos{% endblock %}
+{% block header_actions %}
+  <a class="button button-secondary" href="{{ url_for('contactos_list') }}">Volver al listado</a>
+{% endblock %}
+
+{% block content %}
+  <section class="panel account-panel">
+    <form method="post" enctype="multipart/form-data" class="form-stack">
+      <label class="field">
+        <span>Archivo CSV</span>
+        <input type="file" name="archivo_csv" accept=".csv,text/csv" required>
+      </label>
+      <div class="form-actions">
+        <button class="button" type="submit">Importar</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

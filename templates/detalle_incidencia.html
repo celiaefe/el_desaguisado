@@ -35,6 +35,20 @@
         <div><dt>Unidades afectadas</dt><dd>{{ incidencia.unidades_afectadas }}</dd></div>
         <div><dt>Tipo</dt><dd>{{ incidencia.tipo_incidencia }}</dd></div>
       </dl>
+      {% if incidencia.contacto %}
+        <div class="form-section">
+          <div class="form-section-head">
+            <h2>Cliente vinculado</h2>
+          </div>
+          <dl class="detail-list detail-list-single">
+            <div><dt>Nombre</dt><dd>{{ incidencia.contacto.nombre }}</dd></div>
+            <div><dt>Tipo cliente</dt><dd>{{ incidencia.contacto.tipo_cliente or "-" }}</dd></div>
+            <div><dt>Provincia</dt><dd>{{ incidencia.contacto.provincia or "-" }}</dd></div>
+            <div><dt>Comunidad autónoma</dt><dd>{{ incidencia.contacto.comunidad_autonoma or "-" }}</dd></div>
+            <div><dt>Ficha</dt><dd><a class="text-link" href="{{ url_for('contacto_detalle', id=incidencia.contacto.id) }}">Ver contacto</a></dd></div>
+          </dl>
+        </div>
+      {% endif %}
     </article>
 
     <aside class="panel">

@@ -1,6 +1,8 @@
+import csv
 import io
 import json
 import os
+import re
 import zipfile
 from datetime import date, datetime
 from pathlib import Path
@@ -57,6 +59,10 @@ OPTIONAL_INCIDENCIA_COLUMNS = {
         "sqlite": "VARCHAR(80)",
         "postgresql": "VARCHAR(80)",
     },
+    "contacto_id": {
+        "sqlite": "INTEGER",
+        "postgresql": "INTEGER",
+    },
 }
 
 db = SQLAlchemy()
@@ -103,6 +109,14 @@ TRANSPORTISTAS = [
     "Seur Frío",
     "Meana",
     "Lofriastur",
+    "Otro",
+]
+TIPOS_CLIENTE = [
+    "Tienda gourmet",
+    "Distribuidor",
+    "Hostelería",
+    "Particular",
+    "Empresa",
     "Otro",
 ]
 ESTADO_BADGE_CLASSES = {
@@ -157,6 +171,34 @@ class Usuario(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 
+class Contacto(db.Model):
+    """Contacto o cliente de referencia para incidencias y pedidos."""
+
+    __tablename__ = "contactos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(150), nullable=False, index=True)
+    razon_social = db.Column(db.String(180))
+    cif = db.Column(db.String(30), index=True)
+    email = db.Column(db.String(150), index=True)
+    telefono = db.Column(db.String(50))
+    direccion = db.Column(db.String(220))
+    provincia = db.Column(db.String(100), index=True)
+    codigo_postal = db.Column(db.String(20))
+    comunidad_autonoma = db.Column(db.String(120), index=True)
+    tipo_cliente = db.Column(db.String(100), index=True)
+    etiquetas_holded = db.Column(db.String(250))
+    activo = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    fecha_creacion = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fecha_actualizacion = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+    incidencias = db.relationship("Incidencia", back_populates="contacto")
+
+
 class Incidencia(db.Model):
     """Modelo principal para el registro y seguimiento de incidencias."""
 
@@ -169,6 +211,7 @@ class Incidencia(db.Model):
     fecha_incidencia = db.Column(db.Date, nullable=False, default=date.today)
     fecha_compra = db.Column(db.Date)
     fecha_deteccion = db.Column(db.Date)
+    contacto_id = db.Column(db.Integer, db.ForeignKey("contactos.id"), index=True)
     tienda = db.Column(db.String(150), nullable=False)
     producto = db.Column(db.String(150), nullable=False)
     lote = db.Column(db.String(100))
@@ -186,6 +229,7 @@ class Incidencia(db.Model):
     observaciones_internas = db.Column(db.Text)
     resolucion = db.Column(db.Text)
     fecha_cierre = db.Column(db.Date)
+    contacto = db.relationship("Contacto", back_populates="incidencias")
     seguimientos = db.relationship(
         "SeguimientoIncidencia",
         back_populates="incidencia",
@@ -270,6 +314,12 @@ def parse_optional_positive_int(
         return None
 
 
+def is_valid_email(value: str) -> bool:
+    """Validación simple de correo electrónico."""
+
+    return bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", value))
+
+
 def badge_class(value: str, choices: dict[str, str]) -> str:
     """Devuelve una clase CSS estable para etiquetas visuales."""
 
@@ -293,6 +343,7 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
 
     errors: list[str] = []
 
+    contacto_id_value = clean_text(form_data.get("contacto_id", ""), 20)
     tienda = clean_text(form_data.get("tienda", ""), 150)
     producto = clean_text(form_data.get("producto", ""), 150)
     lote = clean_text(form_data.get("lote", ""), 100)
@@ -347,6 +398,20 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
     if transportista and transportista not in TRANSPORTISTAS:
         errors.append("Selecciona un transportista válido.")
 
+    contacto = None
+    if contacto_id_value:
+        try:
+            contacto_id = int(contacto_id_value)
+            contacto = db.session.get(Contacto, contacto_id)
+            if not contacto:
+                errors.append("Selecciona un contacto válido.")
+            elif not contacto.activo:
+                errors.append("El contacto seleccionado está inactivo.")
+        except ValueError:
+            errors.append("Selecciona un contacto válido.")
+    if contacto and not tienda:
+        tienda = contacto.nombre
+
     unidades_raw = form_data.get("unidades_afectadas", "").strip()
     try:
         unidades_afectadas = int(unidades_raw)
@@ -369,6 +434,7 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         "fecha_incidencia": fecha_incidencia,
         "fecha_compra": fecha_compra,
         "fecha_deteccion": fecha_deteccion,
+        "contacto_id": contacto.id if contacto else None,
         "tienda": tienda,
         "producto": producto,
         "lote": lote or None,
@@ -388,6 +454,70 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         "fecha_cierre": fecha_cierre,
     }
     return data, errors
+
+
+def validate_contacto_form(form_data) -> tuple[dict, list[str]]:
+    """Valida y normaliza datos del formulario de contactos."""
+
+    errors: list[str] = []
+    nombre = clean_text(
+        form_data.get("nombre", "") or form_data.get("nombre_comercial", ""),
+        150,
+    )
+    razon_social = clean_text(form_data.get("razon_social", ""), 180)
+    cif = clean_text(form_data.get("cif", ""), 30)
+    email = clean_text(form_data.get("email", ""), 150).lower()
+    telefono = clean_text(form_data.get("telefono", ""), 50)
+    direccion = clean_text(form_data.get("direccion", ""), 220)
+    provincia = clean_text(form_data.get("provincia", ""), 100)
+    codigo_postal = clean_text(form_data.get("codigo_postal", ""), 20)
+    comunidad_autonoma = clean_text(form_data.get("comunidad_autonoma", ""), 120)
+    tipo_cliente = clean_text(form_data.get("tipo_cliente", ""), 100)
+    etiquetas_holded = clean_text(form_data.get("etiquetas_holded", ""), 250)
+    activo = form_data.get("activo") in {"1", "on", "true", "True"}
+
+    if not nombre:
+        errors.append("El nombre del contacto es obligatorio.")
+    if email and not is_valid_email(email):
+        errors.append("El email no tiene un formato válido.")
+
+    data = {
+        "nombre": nombre,
+        "razon_social": razon_social or None,
+        "cif": cif or None,
+        "email": email or None,
+        "telefono": telefono or None,
+        "direccion": direccion or None,
+        "provincia": provincia or None,
+        "codigo_postal": codigo_postal or None,
+        "comunidad_autonoma": comunidad_autonoma or None,
+        "tipo_cliente": tipo_cliente or None,
+        "etiquetas_holded": etiquetas_holded or None,
+        "activo": activo,
+    }
+    return data, errors
+
+
+def normalize_csv_headers(headers: list[str]) -> dict[str, int]:
+    """Normaliza cabeceras CSV para mapping tolerante."""
+
+    result: dict[str, int] = {}
+    for index, header in enumerate(headers):
+        normalized = clean_text(header or "").lower().replace(" ", "_")
+        result[normalized] = index
+    return result
+
+
+def csv_value(row: list[str], headers_map: dict[str, int], aliases: list[str]) -> str:
+    """Obtiene valor por alias de columna desde una fila CSV."""
+
+    for alias in aliases:
+        key = alias.lower().replace(" ", "_")
+        if key in headers_map:
+            idx = headers_map[key]
+            if idx < len(row):
+                return row[idx]
+    return ""
 
 
 def get_database_uri() -> str:
@@ -479,6 +609,9 @@ def render_incidencia_form(template_name: str, incidencia=None, form_data=None):
         app_name="Entre Lotes",
         incidencia=incidencia,
         form_data=form_data,
+        contactos_activos=Contacto.query.filter_by(activo=True)
+        .order_by(Contacto.nombre.asc())
+        .all(),
     )
 
 
@@ -510,6 +643,53 @@ def get_incidencia_filters(args) -> dict:
         "sort": sort_key,
         "direction": direction,
     }
+
+
+def get_contacto_filters(args) -> dict:
+    """Normaliza los filtros del listado de contactos."""
+
+    return {
+        "q": clean_text(args.get("q", ""), 200),
+        "tipo_cliente": clean_text(args.get("tipo_cliente", ""), 100),
+        "comunidad_autonoma": clean_text(args.get("comunidad_autonoma", ""), 120),
+        "provincia": clean_text(args.get("provincia", ""), 100),
+        "estado": clean_text(args.get("estado", ""), 20) or "activos",
+    }
+
+
+def build_contactos_query(filters: dict):
+    """Aplica búsqueda y filtros del listado de contactos."""
+
+    query = Contacto.query
+    if filters["estado"] == "activos":
+        query = query.filter(Contacto.activo.is_(True))
+    elif filters["estado"] == "inactivos":
+        query = query.filter(Contacto.activo.is_(False))
+
+    if filters["q"]:
+        search = f"%{filters['q']}%"
+        query = query.filter(
+            or_(
+                Contacto.nombre.ilike(search),
+                Contacto.razon_social.ilike(search),
+                Contacto.cif.ilike(search),
+                Contacto.email.ilike(search),
+                Contacto.provincia.ilike(search),
+                Contacto.comunidad_autonoma.ilike(search),
+                Contacto.tipo_cliente.ilike(search),
+                Contacto.etiquetas_holded.ilike(search),
+            )
+        )
+    if filters["tipo_cliente"]:
+        query = query.filter(Contacto.tipo_cliente.ilike(f"%{filters['tipo_cliente']}%"))
+    if filters["comunidad_autonoma"]:
+        query = query.filter(
+            Contacto.comunidad_autonoma.ilike(f"%{filters['comunidad_autonoma']}%")
+        )
+    if filters["provincia"]:
+        query = query.filter(Contacto.provincia.ilike(f"%{filters['provincia']}%"))
+
+    return query.order_by(Contacto.nombre.asc(), Contacto.id.desc())
 
 
 def build_sort_links(filters: dict) -> list[dict]:
@@ -705,6 +885,47 @@ def build_incidencias_export_response(incidencias, suffix: str = "") -> Response
     )
 
 
+def build_contactos_export_response(contactos, suffix: str = "") -> Response:
+    """Construye la descarga Excel de contactos."""
+
+    rows = [[
+        "Nombre",
+        "Razón social",
+        "CIF",
+        "Email",
+        "Teléfono",
+        "Dirección",
+        "Provincia",
+        "Código postal",
+        "Comunidad autónoma",
+        "Tipo cliente",
+        "Etiquetas Holded",
+        "Activo",
+    ]]
+    for contacto in contactos:
+        rows.append([
+            contacto.nombre,
+            contacto.razon_social or "",
+            contacto.cif or "",
+            contacto.email or "",
+            contacto.telefono or "",
+            contacto.direccion or "",
+            contacto.provincia or "",
+            contacto.codigo_postal or "",
+            contacto.comunidad_autonoma or "",
+            contacto.tipo_cliente or "",
+            contacto.etiquetas_holded or "",
+            "Sí" if contacto.activo else "No",
+        ])
+    filename_suffix = f"_{suffix}" if suffix else ""
+    filename = f"contactos_entre_lotes{filename_suffix}_{date.today().isoformat()}.xlsx"
+    return Response(
+        build_excel_workbook(rows),
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 def excel_column_name(index: int) -> str:
     """Convierte un indice de columna base 1 en nombre Excel: A, B, AA..."""
 
@@ -846,6 +1067,7 @@ def create_app() -> Flask:
             "prioridades_incidencia": PRIORIDADES_INCIDENCIA,
             "origenes_incidencia": ORIGENES_INCIDENCIA,
             "transportistas": TRANSPORTISTAS,
+            "tipos_cliente": TIPOS_CLIENTE,
             "productos_catalogo": app.config.get("PRODUCTOS_CATALOGO", []),
             "estado_badge_class": lambda value: badge_class(
                 value, ESTADO_BADGE_CLASSES
@@ -966,6 +1188,16 @@ def create_app() -> Flask:
                     else 0,
                 }
             )
+        incidencias_por_tipo_cliente = dict(
+            db.session.query(Contacto.tipo_cliente, db.func.count(Incidencia.id))
+            .join(Incidencia, Incidencia.contacto_id == Contacto.id)
+            .filter(Contacto.tipo_cliente.isnot(None))
+            .filter(Contacto.tipo_cliente != "")
+            .group_by(Contacto.tipo_cliente)
+            .order_by(db.func.count(Incidencia.id).desc())
+            .limit(5)
+            .all()
+        )
 
         return render_template(
             "dashboard.html",
@@ -976,7 +1208,170 @@ def create_app() -> Flask:
             resueltas=resueltas,
             incidencias_por_tipo=incidencias_por_tipo,
             incidencias_por_transportista=incidencias_por_transportista,
+            incidencias_por_tipo_cliente=incidencias_por_tipo_cliente,
         )
+
+    @app.get("/contactos")
+    @login_required
+    def contactos_list():
+        filters = get_contacto_filters(request.args)
+        contactos = build_contactos_query(filters).all()
+        return render_template(
+            "contactos.html",
+            app_name="Entre Lotes",
+            contactos=contactos,
+            filters=filters,
+        )
+
+    @app.get("/contactos/exportar")
+    @login_required
+    def contactos_exportar():
+        filters = get_contacto_filters(request.args)
+        contactos = build_contactos_query(filters).all()
+        return build_contactos_export_response(contactos)
+
+    @app.route("/contactos/nuevo", methods=["GET", "POST"])
+    @login_required
+    def contacto_nuevo():
+        if request.method == "POST":
+            data, errors = validate_contacto_form(request.form)
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                return render_template(
+                    "nuevo_contacto.html",
+                    app_name="Entre Lotes",
+                    form_data=request.form,
+                )
+            contacto = Contacto(**data)
+            db.session.add(contacto)
+            db.session.commit()
+            flash("El contacto se ha creado correctamente.", "success")
+            return redirect(url_for("contacto_detalle", id=contacto.id))
+
+        return render_template("nuevo_contacto.html", app_name="Entre Lotes")
+
+    @app.get("/contactos/<int:id>")
+    @login_required
+    def contacto_detalle(id: int):
+        contacto = db.get_or_404(Contacto, id)
+        return render_template(
+            "detalle_contacto.html",
+            app_name="Entre Lotes",
+            contacto=contacto,
+        )
+
+    @app.route("/contactos/<int:id>/editar", methods=["GET", "POST"])
+    @login_required
+    def contacto_editar(id: int):
+        contacto = db.get_or_404(Contacto, id)
+        if request.method == "POST":
+            data, errors = validate_contacto_form(request.form)
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                return render_template(
+                    "editar_contacto.html",
+                    app_name="Entre Lotes",
+                    contacto=contacto,
+                    form_data=request.form,
+                )
+            for field, value in data.items():
+                setattr(contacto, field, value)
+            db.session.commit()
+            flash("El contacto se ha actualizado correctamente.", "success")
+            return redirect(url_for("contacto_detalle", id=contacto.id))
+        return render_template(
+            "editar_contacto.html",
+            app_name="Entre Lotes",
+            contacto=contacto,
+        )
+
+    @app.post("/contactos/<int:id>/eliminar")
+    @login_required
+    def contacto_eliminar(id: int):
+        contacto = db.get_or_404(Contacto, id)
+        contacto.activo = False
+        db.session.commit()
+        flash("El contacto se ha desactivado correctamente.", "success")
+        return redirect(url_for("contactos_list"))
+
+    @app.route("/contactos/importar", methods=["GET", "POST"])
+    @login_required
+    def contactos_importar():
+        if request.method == "POST":
+            file = request.files.get("archivo_csv")
+            if not file or not file.filename:
+                flash("Selecciona un archivo CSV para importar.", "error")
+                return render_template("contactos_importar.html", app_name="Entre Lotes")
+
+            raw = file.read().decode("utf-8-sig", errors="ignore")
+            reader = csv.reader(raw.splitlines())
+            rows = list(reader)
+            if not rows:
+                flash("El archivo CSV está vacío.", "error")
+                return render_template("contactos_importar.html", app_name="Entre Lotes")
+
+            headers_map = normalize_csv_headers(rows[0])
+            created = 0
+            updated = 0
+            skipped = 0
+            errors_count = 0
+
+            for row in rows[1:]:
+                joined = "".join(row).strip()
+                if not joined:
+                    skipped += 1
+                    continue
+
+                payload = {
+                    "nombre": csv_value(row, headers_map, ["nombre", "nombre_comercial"]),
+                    "razon_social": csv_value(row, headers_map, ["razon_social"]),
+                    "cif": csv_value(row, headers_map, ["cif", "nif"]),
+                    "email": csv_value(row, headers_map, ["email", "correo"]),
+                    "telefono": csv_value(row, headers_map, ["telefono", "teléfono", "movil", "móvil"]),
+                    "direccion": csv_value(row, headers_map, ["direccion", "dirección"]),
+                    "provincia": csv_value(row, headers_map, ["provincia"]),
+                    "codigo_postal": csv_value(row, headers_map, ["codigo_postal", "código_postal", "cp"]),
+                    "comunidad_autonoma": csv_value(
+                        row,
+                        headers_map,
+                        ["comunidad_autonoma", "comunidad_autónoma", "comunidad"],
+                    ),
+                    "tipo_cliente": csv_value(row, headers_map, ["tipo_cliente", "tipo"]),
+                    "etiquetas_holded": csv_value(row, headers_map, ["etiquetas_holded", "etiquetas", "tags"]),
+                    "activo": "1",
+                }
+                data, validation_errors = validate_contacto_form(payload)
+                if validation_errors:
+                    errors_count += 1
+                    skipped += 1
+                    continue
+
+                existing = None
+                if data["cif"]:
+                    existing = Contacto.query.filter_by(cif=data["cif"]).first()
+                if not existing and data["email"]:
+                    existing = Contacto.query.filter_by(email=data["email"]).first()
+                if not existing:
+                    existing = Contacto.query.filter_by(nombre=data["nombre"]).first()
+
+                if existing:
+                    for field, value in data.items():
+                        setattr(existing, field, value)
+                    updated += 1
+                else:
+                    db.session.add(Contacto(**data))
+                    created += 1
+
+            db.session.commit()
+            flash(
+                f"Importación completada. Creados: {created}. Actualizados: {updated}. Omitidos: {skipped}. Errores: {errors_count}.",
+                "success",
+            )
+            return redirect(url_for("contactos_list"))
+
+        return render_template("contactos_importar.html", app_name="Entre Lotes")
 
     @app.route("/incidencias")
     @login_required

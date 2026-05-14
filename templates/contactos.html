@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Contactos | Entre Lotes{% endblock %}
+{% block eyebrow %}Clientes{% endblock %}
+{% block page_title %}Listado de contactos{% endblock %}
+{% block header_actions %}
+  <div class="header-actions">
+    <a class="button button-secondary" href="{{ url_for('contactos_exportar', **request.args) }}">Exportar Excel</a>
+    <a class="button button-secondary" href="{{ url_for('contactos_importar') }}">Importar CSV</a>
+    <a class="button" href="{{ url_for('contacto_nuevo') }}">Nuevo contacto</a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Contactos registrados</h2>
+      </div>
+    </div>
+    <form class="filters-form" method="get">
+      <label class="field field-wide">
+        <span>Búsqueda rápida</span>
+        <input type="search" name="q" value="{{ filters.q }}" placeholder="Nombre, CIF, email, provincia, comunidad, tipo o etiqueta">
+      </label>
+      <label class="field">
+        <span>Tipo cliente</span>
+        <input type="text" name="tipo_cliente" value="{{ filters.tipo_cliente }}">
+      </label>
+      <label class="field">
+        <span>Comunidad autónoma</span>
+        <input type="text" name="comunidad_autonoma" value="{{ filters.comunidad_autonoma }}">
+      </label>
+      <label class="field">
+        <span>Provincia</span>
+        <input type="text" name="provincia" value="{{ filters.provincia }}">
+      </label>
+      <label class="field">
+        <span>Estado</span>
+        <select name="estado">
+          <option value="activos" {% if filters.estado == "activos" %}selected{% endif %}>Activos</option>
+          <option value="inactivos" {% if filters.estado == "inactivos" %}selected{% endif %}>Inactivos</option>
+          <option value="todos" {% if filters.estado == "todos" %}selected{% endif %}>Todos</option>
+        </select>
+      </label>
+      <div class="filters-actions">
+        <button class="button" type="submit">Buscar</button>
+        <a class="button button-secondary" href="{{ url_for('contactos_list') }}">Limpiar</a>
+      </div>
+    </form>
+
+    {% if contactos %}
+      <div class="table-wrap">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Tipo cliente</th>
+              <th>Provincia</th>
+              <th>Comunidad autónoma</th>
+              <th>Email</th>
+              <th>CIF</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for contacto in contactos %}
+              <tr>
+                <td>{{ contacto.nombre }}</td>
+                <td>{{ contacto.tipo_cliente or "-" }}</td>
+                <td>{{ contacto.provincia or "-" }}</td>
+                <td>{{ contacto.comunidad_autonoma or "-" }}</td>
+                <td>{{ contacto.email or "-" }}</td>
+                <td>{{ contacto.cif or "-" }}</td>
+                <td>
+                  <div class="row-actions">
+                    <a class="text-link" href="{{ url_for('contacto_detalle', id=contacto.id) }}">Ver</a>
+                    <a class="text-link" href="{{ url_for('contacto_editar', id=contacto.id) }}">Editar</a>
+                    {% if contacto.activo %}
+                      <form method="post" action="{{ url_for('contacto_eliminar', id=contacto.id) }}" onsubmit="return confirm('¿Desactivar este contacto?');">
+                        <button class="button button-secondary" type="submit">Desactivar</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">No hay contactos que coincidan con los filtros seleccionados.</p>
+    {% endif %}
+  </section>
+{% endblock %}

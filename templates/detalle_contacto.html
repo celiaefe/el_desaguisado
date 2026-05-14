@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Contacto #{{ contacto.id }} | Entre Lotes{% endblock %}
+{% block eyebrow %}Clientes{% endblock %}
+{% block page_title %}{{ contacto.nombre }}{% endblock %}
+{% block header_actions %}
+  <div class="header-actions">
+    <a class="button button-secondary" href="{{ url_for('contactos_list') }}">Volver</a>
+    <a class="button" href="{{ url_for('contacto_editar', id=contacto.id) }}">Editar</a>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <dl class="detail-list">
+      <div><dt>Nombre</dt><dd>{{ contacto.nombre }}</dd></div>
+      <div><dt>Razón social</dt><dd>{{ contacto.razon_social or "-" }}</dd></div>
+      <div><dt>CIF</dt><dd>{{ contacto.cif or "-" }}</dd></div>
+      <div><dt>Tipo cliente</dt><dd>{{ contacto.tipo_cliente or "-" }}</dd></div>
+      <div><dt>Etiquetas Holded</dt><dd>{{ contacto.etiquetas_holded or "-" }}</dd></div>
+      <div><dt>Email</dt><dd>{{ contacto.email or "-" }}</dd></div>
+      <div><dt>Teléfono</dt><dd>{{ contacto.telefono or "-" }}</dd></div>
+      <div><dt>Dirección</dt><dd>{{ contacto.direccion or "-" }}</dd></div>
+      <div><dt>Provincia</dt><dd>{{ contacto.provincia or "-" }}</dd></div>
+      <div><dt>Código postal</dt><dd>{{ contacto.codigo_postal or "-" }}</dd></div>
+      <div><dt>Comunidad autónoma</dt><dd>{{ contacto.comunidad_autonoma or "-" }}</dd></div>
+      <div><dt>Estado</dt><dd>{{ "Activo" if contacto.activo else "Inactivo" }}</dd></div>
+    </dl>
+  </section>
+{% endblock %}
