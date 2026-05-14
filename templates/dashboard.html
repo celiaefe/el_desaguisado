@@ -34,20 +34,16 @@
   <section class="panel">
     <div class="panel-head">
       <div>
-        <h2>Incidencias por tipo</h2>
-        <p>Resumen de los tipos de incidencia principales.</p>
+        <h2>Incidencias principales</h2>
       </div>
     </div>
-    <div class="type-breakdown" aria-label="Incidencias por tipo">
+    <div class="main-types-grid" aria-label="Incidencias principales">
       {% for item in incidencias_por_tipo %}
-        <article class="type-breakdown-item">
-          <div class="type-breakdown-row">
-            <span>{{ item.nombre }}</span>
-            <strong>{{ item.total }}</strong>
-          </div>
-          <div class="type-breakdown-track" aria-hidden="true">
-            <span style="width: {{ item.porcentaje_barra }}%;"></span>
-          </div>
+        <article class="main-type-card {% if item.total == 0 %}is-zero{% else %}has-data{% endif %}">
+          <span class="main-type-name">{{ item.nombre }}</span>
+          <strong class="main-type-total">{{ item.total }}</strong>
+          <small class="main-type-caption">casos registrados</small>
+          <span class="main-type-accent" aria-hidden="true"></span>
         </article>
       {% endfor %}
     </div>

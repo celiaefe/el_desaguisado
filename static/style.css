@@ -616,6 +616,70 @@ a {
   background: linear-gradient(90deg, #9B6B3E, #D2AE74);
 }
 
+.main-types-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.main-type-card {
+  position: relative;
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  padding: 0.92rem 0.88rem;
+  border: 1px solid rgba(184, 138, 68, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.8);
+}
+
+.main-type-card.has-data {
+  border-color: rgba(184, 138, 68, 0.24);
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0.95), rgba(246, 233, 207, 0.42));
+}
+
+.main-type-card.is-zero {
+  border-color: rgba(184, 138, 68, 0.12);
+  background: rgba(255, 253, 249, 0.65);
+}
+
+.main-type-name {
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 840;
+  line-height: 1.3;
+}
+
+.main-type-total {
+  color: #9B6B3E;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.85rem;
+  line-height: 1;
+}
+
+.main-type-card.is-zero .main-type-total {
+  color: #A89376;
+}
+
+.main-type-caption {
+  color: var(--muted);
+  font-size: 0.77rem;
+}
+
+.main-type-accent {
+  position: absolute;
+  top: 0.56rem;
+  right: 0.56rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(184, 138, 68, 0.22);
+}
+
+.main-type-card.has-data .main-type-accent {
+  background: rgba(184, 138, 68, 0.56);
+}
+
 .type-chart-grid {
   display: grid;
   gap: 1rem;
@@ -1227,6 +1291,7 @@ tbody tr:last-child td {
   .summary-grid,
   .type-chart-grid,
   .dashboard-donut-grid,
+  .main-types-grid,
   .filters-form,
   .notes-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1260,6 +1325,7 @@ tbody tr:last-child td {
   .summary-grid,
   .type-chart-grid,
   .dashboard-donut-grid,
+  .main-types-grid,
   .filters-form,
   .form-grid,
   .detail-list,
