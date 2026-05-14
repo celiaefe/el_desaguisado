@@ -96,15 +96,19 @@
           <h2>Incidencias por tipo de cliente</h2>
         </div>
       </div>
-      <div class="type-breakdown" aria-label="Incidencias por tipo de cliente">
+      <div class="type-chart-grid" aria-label="Incidencias por tipo de cliente">
         {% for item in incidencias_por_tipo_cliente %}
-          <article class="type-breakdown-item">
-            <div class="type-breakdown-row">
+          <article class="type-chart-card">
+            <div
+              class="type-donut type-donut-{{ (loop.index0 % 4) + 1 }}"
+              style="--value: {{ item.porcentaje_total }};"
+              aria-label="{{ item.nombre }}: {{ item.total }} incidencia{% if item.total != 1 %}s{% endif %}, {{ item.porcentaje_total }}%"
+            >
+              <span>{{ item.porcentaje_total }}%</span>
+            </div>
+            <div class="type-chart-copy">
               <span>{{ item.nombre }}</span>
               <strong>{{ item.total }}</strong>
-            </div>
-            <div class="type-breakdown-track" aria-hidden="true">
-              <span style="width: {{ item.porcentaje_barra }}%;"></span>
             </div>
           </article>
         {% endfor %}
@@ -117,15 +121,19 @@
           <h2>Incidencias por comunidad autónoma</h2>
         </div>
       </div>
-      <div class="type-breakdown" aria-label="Incidencias por comunidad autónoma">
+      <div class="type-chart-grid" aria-label="Incidencias por comunidad autónoma">
         {% for item in incidencias_por_comunidad %}
-          <article class="type-breakdown-item">
-            <div class="type-breakdown-row">
+          <article class="type-chart-card">
+            <div
+              class="type-donut type-donut-{{ (loop.index0 % 4) + 1 }}"
+              style="--value: {{ item.porcentaje_total }};"
+              aria-label="{{ item.nombre }}: {{ item.total }} incidencia{% if item.total != 1 %}s{% endif %}, {{ item.porcentaje_total }}%"
+            >
+              <span>{{ item.porcentaje_total }}%</span>
+            </div>
+            <div class="type-chart-copy">
               <span>{{ item.nombre }}</span>
               <strong>{{ item.total }}</strong>
-            </div>
-            <div class="type-breakdown-track" aria-hidden="true">
-              <span style="width: {{ item.porcentaje_barra }}%;"></span>
             </div>
           </article>
         {% endfor %}
