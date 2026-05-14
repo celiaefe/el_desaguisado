@@ -476,6 +476,10 @@ a {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.summary-grid-compact {
+  gap: 0.8rem;
+}
+
 .summary-card,
 .panel {
   border: 1px solid rgba(184, 138, 68, 0.18);
@@ -487,7 +491,7 @@ a {
 .summary-card {
   position: relative;
   overflow: hidden;
-  padding: 1.32rem 1.25rem;
+  padding: 1.05rem 1rem;
 }
 
 .summary-card::before {
@@ -520,10 +524,10 @@ a {
 
 .summary-card strong {
   display: block;
-  margin: 0.42rem 0 0.35rem;
+  margin: 0.34rem 0 0.28rem;
   color: var(--text);
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 2.55rem;
+  font-size: 2.05rem;
   font-weight: 700;
   line-height: 1;
 }
@@ -683,6 +687,68 @@ a {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.45rem;
   line-height: 1;
+}
+
+.dashboard-donut-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.donut-panel {
+  display: grid;
+  align-content: start;
+}
+
+.donut-wrap {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.donut-compact {
+  width: 132px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin: 0 auto;
+  background: #EFE5D8;
+  box-shadow: inset 0 0 0 14px var(--surface), inset 0 0 0 1px rgba(184, 138, 68, 0.2);
+}
+
+.donut-legend {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.donut-legend-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid rgba(184, 138, 68, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.72);
+}
+
+.donut-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--swatch);
+}
+
+.donut-name {
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 800;
+  min-width: 0;
+}
+
+.donut-meta {
+  color: #8A6D48;
+  font-size: 0.82rem;
+  font-weight: 760;
+  white-space: nowrap;
 }
 
 .table-wrap {
@@ -1160,6 +1226,7 @@ tbody tr:last-child td {
 
   .summary-grid,
   .type-chart-grid,
+  .dashboard-donut-grid,
   .filters-form,
   .notes-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1192,6 +1259,7 @@ tbody tr:last-child td {
   .sidebar-nav,
   .summary-grid,
   .type-chart-grid,
+  .dashboard-donut-grid,
   .filters-form,
   .form-grid,
   .detail-list,

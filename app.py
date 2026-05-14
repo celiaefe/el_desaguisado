@@ -1153,6 +1153,57 @@ def create_app() -> Flask:
     @app.get("/dashboard")
     @login_required
     def dashboard():
+        donut_palette = [
+            "#9B6B3E",
+            "#B88A44",
+            "#6E7D55",
+            "#8A4A3C",
+            "#7F6A56",
+            "#9C8B73",
+            "#B7A382",
+        ]
+
+        def build_donut_series(raw_items, limit=None, other_label=None):
+            items = list(raw_items)
+            if limit and len(items) > limit:
+                kept = items[:limit]
+                other_total = sum(total for _name, total in items[limit:])
+                if other_total:
+                    kept.append((other_label or "Otros", other_total))
+                items = kept
+
+            total = sum(total for _name, total in items)
+            if not total:
+                return {"series": [], "total": 0, "background": ""}
+
+            start = 0
+            segments = []
+            for index, (name, count) in enumerate(items):
+                pct = round((count / total) * 100, 1)
+                color = donut_palette[index % len(donut_palette)]
+                end = start + ((count / total) * 100)
+                segments.append(
+                    {
+                        "nombre": name,
+                        "total": count,
+                        "porcentaje": pct,
+                        "color": color,
+                        "start": start,
+                        "end": end,
+                    }
+                )
+                start = end
+
+            gradient_parts = [
+                f"{segment['color']} {segment['start']:.3f}% {segment['end']:.3f}%"
+                for segment in segments
+            ]
+            return {
+                "series": segments,
+                "total": total,
+                "background": f"conic-gradient({', '.join(gradient_parts)})",
+            }
+
         total = Incidencia.query.count()
         nuevas = Incidencia.query.filter_by(estado="Nueva").count()
         abiertas = Incidencia.query.filter(
@@ -1173,32 +1224,22 @@ def create_app() -> Flask:
                 {
                     "nombre": tipo,
                     "total": count,
-                    "porcentaje": round((count / total_tipos_dashboard) * 100)
+                    "porcentaje_total": round((count / total_tipos_dashboard) * 100, 1)
                     if total_tipos_dashboard
+                    else 0,
+                    "porcentaje_barra": round((count / max(conteos_por_tipo.values(), default=1)) * 100)
+                    if conteos_por_tipo
                     else 0,
                 }
             )
-        conteos_transportista = dict(
+        conteos_transportista = (
             db.session.query(Incidencia.transportista, db.func.count(Incidencia.id))
             .filter(Incidencia.transportista.isnot(None))
             .filter(Incidencia.transportista != "")
             .group_by(Incidencia.transportista)
             .order_by(db.func.count(Incidencia.id).desc())
-            .limit(4)
             .all()
         )
-        total_transportistas_dashboard = sum(conteos_transportista.values())
-        incidencias_por_transportista = []
-        for transportista, count in conteos_transportista.items():
-            incidencias_por_transportista.append(
-                {
-                    "nombre": transportista,
-                    "total": count,
-                    "porcentaje": round((count / total_transportistas_dashboard) * 100)
-                    if total_transportistas_dashboard
-                    else 0,
-                }
-            )
         conteos_tipo_cliente = (
             db.session.query(
                 db.func.coalesce(db.func.nullif(Contacto.tipo_cliente, ""), "Sin tipo"),
@@ -1209,21 +1250,6 @@ def create_app() -> Flask:
             .order_by(db.func.count(Incidencia.id).desc())
             .all()
         )
-        total_tipo_cliente = sum(total for _nombre, total in conteos_tipo_cliente)
-        max_tipo_cliente = max((total for _nombre, total in conteos_tipo_cliente), default=0)
-        incidencias_por_tipo_cliente = [
-            {
-                "nombre": nombre,
-                "total": total,
-                "porcentaje_total": round((total / total_tipo_cliente) * 100)
-                if total_tipo_cliente
-                else 0,
-                "porcentaje_barra": round((total / max_tipo_cliente) * 100)
-                if max_tipo_cliente
-                else 0,
-            }
-            for nombre, total in conteos_tipo_cliente
-        ]
         conteos_comunidad = (
             db.session.query(
                 db.func.coalesce(
@@ -1240,24 +1266,19 @@ def create_app() -> Flask:
                 )
             )
             .order_by(db.func.count(Incidencia.id).desc())
-            .limit(8)
             .all()
         )
-        total_comunidad = sum(total for _nombre, total in conteos_comunidad)
-        max_comunidad = max((total for _nombre, total in conteos_comunidad), default=0)
-        incidencias_por_comunidad = [
-            {
-                "nombre": nombre,
-                "total": total,
-                "porcentaje_total": round((total / total_comunidad) * 100)
-                if total_comunidad
-                else 0,
-                "porcentaje_barra": round((total / max_comunidad) * 100)
-                if max_comunidad
-                else 0,
-            }
-            for nombre, total in conteos_comunidad
-        ]
+        incidencias_por_tipo_cliente = build_donut_series(conteos_tipo_cliente)
+        incidencias_por_comunidad = build_donut_series(
+            conteos_comunidad,
+            limit=6,
+            other_label="Otras",
+        )
+        incidencias_por_transportista = build_donut_series(
+            conteos_transportista,
+            limit=6,
+            other_label="Otros",
+        )
 
         return render_template(
             "dashboard.html",

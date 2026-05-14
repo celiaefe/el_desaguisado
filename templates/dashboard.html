@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-  <section class="summary-grid" aria-label="Resumen de incidencias">
+  <section class="summary-grid summary-grid-compact" aria-label="Resumen de incidencias">
     <article class="summary-card">
       <span>Total</span>
       <strong>{{ total }}</strong>
@@ -38,110 +38,92 @@
         <p>Resumen de los tipos de incidencia principales.</p>
       </div>
     </div>
-
-    <div class="type-chart-grid" aria-label="Incidencias por tipo">
-      {% for tipo in incidencias_por_tipo %}
-        <article class="type-chart-card">
-          <div
-            class="type-donut type-donut-{{ loop.index }}"
-            style="--value: {{ tipo.porcentaje }};"
-            aria-label="{{ tipo.nombre }}: {{ tipo.total }} incidencia{% if tipo.total != 1 %}s{% endif %}, {{ tipo.porcentaje }}%"
-          >
-            <span>{{ tipo.porcentaje }}%</span>
+    <div class="type-breakdown" aria-label="Incidencias por tipo">
+      {% for item in incidencias_por_tipo %}
+        <article class="type-breakdown-item">
+          <div class="type-breakdown-row">
+            <span>{{ item.nombre }}</span>
+            <strong>{{ item.total }}</strong>
           </div>
-          <div class="type-chart-copy">
-            <span>{{ tipo.nombre }}</span>
-            <strong>{{ tipo.total }}</strong>
+          <div class="type-breakdown-track" aria-hidden="true">
+            <span style="width: {{ item.porcentaje_barra }}%;"></span>
           </div>
         </article>
       {% endfor %}
     </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-head">
-      <div>
-        <h2>Incidencias por empresa de transporte</h2>
-        <p>Principales transportistas con incidencias registradas.</p>
-      </div>
-    </div>
-
-    {% if incidencias_por_transportista %}
-      <div class="type-chart-grid" aria-label="Incidencias por empresa de transporte">
-        {% for transportista in incidencias_por_transportista %}
-          <article class="type-chart-card">
-            <div
-              class="type-donut type-donut-{{ (loop.index0 % 4) + 1 }}"
-              style="--value: {{ transportista.porcentaje }};"
-              aria-label="{{ transportista.nombre }}: {{ transportista.total }} incidencia{% if transportista.total != 1 %}s{% endif %}, {{ transportista.porcentaje }}%"
-            >
-              <span>{{ transportista.porcentaje }}%</span>
-            </div>
-            <div class="type-chart-copy">
-              <span>{{ transportista.nombre }}</span>
-              <strong>{{ transportista.total }}</strong>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="empty-state">Aún no hay transportistas informados en las incidencias.</p>
-    {% endif %}
-  </section>
-
-  {% if incidencias_por_tipo_cliente or incidencias_por_comunidad %}
-    <section class="panel">
+  <section class="dashboard-donut-grid">
+    <article class="panel donut-panel">
       <div class="panel-head">
         <div>
           <h2>Incidencias por tipo de cliente</h2>
         </div>
       </div>
-      <div class="type-chart-grid" aria-label="Incidencias por tipo de cliente">
-        {% for item in incidencias_por_tipo_cliente %}
-          <article class="type-chart-card">
-            <div
-              class="type-donut type-donut-{{ (loop.index0 % 4) + 1 }}"
-              style="--value: {{ item.porcentaje_total }};"
-              aria-label="{{ item.nombre }}: {{ item.total }} incidencia{% if item.total != 1 %}s{% endif %}, {{ item.porcentaje_total }}%"
-            >
-              <span>{{ item.porcentaje_total }}%</span>
-            </div>
-            <div class="type-chart-copy">
-              <span>{{ item.nombre }}</span>
-              <strong>{{ item.total }}</strong>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-    </section>
+      {% if incidencias_por_tipo_cliente.series %}
+        <div class="donut-wrap">
+          <div class="donut-compact" style="background: {{ incidencias_por_tipo_cliente.background }};" aria-hidden="true"></div>
+          <div class="donut-legend">
+            {% for item in incidencias_por_tipo_cliente.series %}
+              <div class="donut-legend-row">
+                <span class="donut-swatch" style="--swatch: {{ item.color }};"></span>
+                <span class="donut-name">{{ item.nombre }}</span>
+                <span class="donut-meta">{{ item.porcentaje }}% · {{ item.total }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="empty-state">Todavía no hay incidencias vinculadas a contactos.</p>
+      {% endif %}
+    </article>
 
-    <section class="panel">
+    <article class="panel donut-panel">
       <div class="panel-head">
         <div>
           <h2>Incidencias por comunidad autónoma</h2>
         </div>
       </div>
-      <div class="type-chart-grid" aria-label="Incidencias por comunidad autónoma">
-        {% for item in incidencias_por_comunidad %}
-          <article class="type-chart-card">
-            <div
-              class="type-donut type-donut-{{ (loop.index0 % 4) + 1 }}"
-              style="--value: {{ item.porcentaje_total }};"
-              aria-label="{{ item.nombre }}: {{ item.total }} incidencia{% if item.total != 1 %}s{% endif %}, {{ item.porcentaje_total }}%"
-            >
-              <span>{{ item.porcentaje_total }}%</span>
-            </div>
-            <div class="type-chart-copy">
-              <span>{{ item.nombre }}</span>
-              <strong>{{ item.total }}</strong>
-            </div>
-          </article>
-        {% endfor %}
+      {% if incidencias_por_comunidad.series %}
+        <div class="donut-wrap">
+          <div class="donut-compact" style="background: {{ incidencias_por_comunidad.background }};" aria-hidden="true"></div>
+          <div class="donut-legend">
+            {% for item in incidencias_por_comunidad.series %}
+              <div class="donut-legend-row">
+                <span class="donut-swatch" style="--swatch: {{ item.color }};"></span>
+                <span class="donut-name">{{ item.nombre }}</span>
+                <span class="donut-meta">{{ item.porcentaje }}% · {{ item.total }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="empty-state">Todavía no hay incidencias vinculadas a contactos.</p>
+      {% endif %}
+    </article>
+
+    <article class="panel donut-panel">
+      <div class="panel-head">
+        <div>
+          <h2>Incidencias por empresa de transporte</h2>
+        </div>
       </div>
-    </section>
-  {% else %}
-    <section class="panel">
-      <p class="empty-state">Todavía no hay incidencias vinculadas a contactos.</p>
-    </section>
-  {% endif %}
+      {% if incidencias_por_transportista.series %}
+        <div class="donut-wrap">
+          <div class="donut-compact" style="background: {{ incidencias_por_transportista.background }};" aria-hidden="true"></div>
+          <div class="donut-legend">
+            {% for item in incidencias_por_transportista.series %}
+              <div class="donut-legend-row">
+                <span class="donut-swatch" style="--swatch: {{ item.color }};"></span>
+                <span class="donut-name">{{ item.nombre }}</span>
+                <span class="donut-meta">{{ item.porcentaje }}% · {{ item.total }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+        <p class="empty-state">Aún no hay transportistas informados en las incidencias.</p>
+      {% endif %}
+    </article>
+  </section>
 {% endblock %}
