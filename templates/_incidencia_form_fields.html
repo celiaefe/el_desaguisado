@@ -33,18 +33,15 @@
 
       <label class="field">
         <span>Tienda</span>
-        <input type="text" name="tienda" maxlength="150" value="{{ form_values.get('tienda', incidencia.tienda if incidencia else '') }}" required>
-      </label>
-
-      <label class="field">
-        <span>Contacto vinculado</span>
         {% set current_contacto_id = form_values.get('contacto_id', incidencia.contacto_id if incidencia else '') %}
-        <select name="contacto_id">
-          <option value="">Sin vincular</option>
+        {% set current_tienda = form_values.get('tienda', incidencia.tienda if incidencia else '') %}
+        <input type="hidden" name="contacto_id" id="contacto_id_hidden" value="{{ current_contacto_id }}">
+        <input type="text" name="tienda" id="tienda_input" maxlength="150" value="{{ current_tienda }}" list="contactos-catalogo" autocomplete="off" required>
+        <datalist id="contactos-catalogo">
           {% for contacto in contactos_activos %}
-            <option value="{{ contacto.id }}" {% if (current_contacto_id|string) == (contacto.id|string) %}selected{% endif %}>{{ contacto.nombre }}</option>
+            <option value="{{ contacto.nombre }}" label="{{ contacto.tipo_cliente or 'Cliente' }}{% if contacto.provincia %} · {{ contacto.provincia }}{% endif %}"></option>
           {% endfor %}
-        </select>
+        </datalist>
       </label>
 
       <label class="field">
@@ -171,3 +168,26 @@
     </div>
   </section>
 </div>
+
+<script>
+  (function () {
+    const tiendaInput = document.getElementById("tienda_input");
+    const contactoIdHidden = document.getElementById("contacto_id_hidden");
+    const contactosLookup = {{ contactos_lookup | tojson }};
+
+    if (!tiendaInput || !contactoIdHidden) {
+      return;
+    }
+
+    function syncContactoId() {
+      const value = tiendaInput.value.trim();
+      contactoIdHidden.value = Object.prototype.hasOwnProperty.call(contactosLookup, value)
+        ? String(contactosLookup[value])
+        : "";
+    }
+
+    tiendaInput.addEventListener("input", syncContactoId);
+    tiendaInput.addEventListener("change", syncContactoId);
+    syncContactoId();
+  })();
+</script>

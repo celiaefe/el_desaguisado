@@ -409,6 +409,13 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
                 errors.append("El contacto seleccionado está inactivo.")
         except ValueError:
             errors.append("Selecciona un contacto válido.")
+    elif tienda:
+        contacto = (
+            Contacto.query.filter(Contacto.activo.is_(True))
+            .filter(Contacto.nombre.ilike(tienda))
+            .order_by(Contacto.id.asc())
+            .first()
+        )
     if contacto and not tienda:
         tienda = contacto.nombre
 
@@ -604,14 +611,18 @@ def ensure_optional_incidencia_columns() -> None:
 def render_incidencia_form(template_name: str, incidencia=None, form_data=None):
     """Renderiza formularios de alta y edicion con contexto común."""
 
+    contactos_activos = (
+        Contacto.query.filter_by(activo=True)
+        .order_by(Contacto.nombre.asc())
+        .all()
+    )
     return render_template(
         template_name,
         app_name="Entre Lotes",
         incidencia=incidencia,
         form_data=form_data,
-        contactos_activos=Contacto.query.filter_by(activo=True)
-        .order_by(Contacto.nombre.asc())
-        .all(),
+        contactos_activos=contactos_activos,
+        contactos_lookup={contacto.nombre: contacto.id for contacto in contactos_activos},
     )
 
 
