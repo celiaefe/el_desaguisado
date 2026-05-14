@@ -994,6 +994,38 @@ tbody tr:last-child td {
   outline: 3px solid rgba(184, 138, 68, 0.16);
 }
 
+.autocomplete-list {
+  margin-top: 0.35rem;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #D8CCBC;
+  border-radius: 8px;
+  background: #FFFDF8;
+  box-shadow: var(--shadow-soft);
+}
+
+.autocomplete-item {
+  display: block;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-bottom: 1px solid rgba(169, 135, 72, 0.16);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: 0;
+}
+
+.autocomplete-item:hover {
+  background: #F8F1E6;
+}
+
 .field-full {
   grid-column: 1 / -1;
 }

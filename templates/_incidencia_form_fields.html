@@ -36,23 +36,15 @@
         {% set current_contacto_id = form_values.get('contacto_id', incidencia.contacto_id if incidencia else '') %}
         {% set current_tienda = form_values.get('tienda', incidencia.tienda if incidencia else '') %}
         <input type="hidden" name="contacto_id" id="contacto_id_hidden" value="{{ current_contacto_id }}">
-        <input type="text" name="tienda" id="tienda_input" maxlength="150" value="{{ current_tienda }}" list="contactos-catalogo" autocomplete="off" required>
-        <datalist id="contactos-catalogo">
-          {% for contacto in contactos_activos %}
-            <option value="{{ contacto.nombre }}" label="{{ contacto.tipo_cliente or 'Cliente' }}{% if contacto.provincia %} · {{ contacto.provincia }}{% endif %}"></option>
-          {% endfor %}
-        </datalist>
+        <input type="text" name="tienda" id="tienda_input" maxlength="150" value="{{ current_tienda }}" autocomplete="off" required>
+        <div id="tienda_suggestions" class="autocomplete-list" hidden></div>
       </label>
 
       <label class="field">
         <span>Producto</span>
         {% set current_producto = form_values.get('producto', incidencia.producto if incidencia else '') %}
-        <input type="text" name="producto" maxlength="150" value="{{ current_producto }}" list="productos-catalogo" autocomplete="off" required>
-        <datalist id="productos-catalogo">
-          {% for producto_catalogo in productos_catalogo %}
-            <option value="{{ producto_catalogo }}"></option>
-          {% endfor %}
-        </datalist>
+        <input type="text" name="producto" id="producto_input" maxlength="150" value="{{ current_producto }}" autocomplete="off" required>
+        <div id="producto_suggestions" class="autocomplete-list" hidden></div>
       </label>
 
       <label class="field">
@@ -172,11 +164,21 @@
 <script>
   (function () {
     const tiendaInput = document.getElementById("tienda_input");
+    const productoInput = document.getElementById("producto_input");
     const contactoIdHidden = document.getElementById("contacto_id_hidden");
+    const tiendaSuggestions = document.getElementById("tienda_suggestions");
+    const productoSuggestions = document.getElementById("producto_suggestions");
     const contactosLookup = {{ contactos_lookup | tojson }};
+    const contactosLista = {{ contactos_lookup.keys() | list | tojson }};
+    const productosCatalogo = {{ productos_catalogo | tojson }};
+    const MAX_SUGGESTIONS = 8;
 
-    if (!tiendaInput || !contactoIdHidden) {
+    if (!tiendaInput || !contactoIdHidden || !productoInput) {
       return;
+    }
+
+    function normalize(value) {
+      return value.trim().toLowerCase();
     }
 
     function syncContactoId() {
@@ -186,8 +188,71 @@
         : "";
     }
 
+    function renderSuggestions(container, items, onPick) {
+      container.innerHTML = "";
+      if (!items.length) {
+        container.hidden = true;
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      items.forEach((item) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "autocomplete-item";
+        button.textContent = item;
+        button.addEventListener("click", () => onPick(item));
+        fragment.appendChild(button);
+      });
+      container.appendChild(fragment);
+      container.hidden = false;
+    }
+
+    function filterItems(source, query) {
+      if (!query) {
+        return [];
+      }
+      const normalizedQuery = normalize(query);
+      return source
+        .filter((item) => normalize(item).includes(normalizedQuery))
+        .slice(0, MAX_SUGGESTIONS);
+    }
+
+    function hideSuggestions() {
+      tiendaSuggestions.hidden = true;
+      productoSuggestions.hidden = true;
+    }
+
+    tiendaInput.addEventListener("input", () => {
+      syncContactoId();
+      const items = filterItems(contactosLista, tiendaInput.value);
+      renderSuggestions(tiendaSuggestions, items, (item) => {
+        tiendaInput.value = item;
+        syncContactoId();
+        tiendaSuggestions.hidden = true;
+      });
+    });
+
     tiendaInput.addEventListener("input", syncContactoId);
     tiendaInput.addEventListener("change", syncContactoId);
+
+    productoInput.addEventListener("input", () => {
+      const items = filterItems(productosCatalogo, productoInput.value);
+      renderSuggestions(productoSuggestions, items, (item) => {
+        productoInput.value = item;
+        productoSuggestions.hidden = true;
+      });
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target === tiendaInput || event.target === productoInput) {
+        return;
+      }
+      if (tiendaSuggestions.contains(event.target) || productoSuggestions.contains(event.target)) {
+        return;
+      }
+      hideSuggestions();
+    });
+
     syncContactoId();
   })();
 </script>
