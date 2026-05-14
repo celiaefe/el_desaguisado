@@ -38,7 +38,13 @@
 
       <label class="field">
         <span>Producto</span>
-        <input type="text" name="producto" maxlength="150" value="{{ form_values.get('producto', incidencia.producto if incidencia else '') }}" required>
+        {% set current_producto = form_values.get('producto', incidencia.producto if incidencia else '') %}
+        <input type="text" name="producto" maxlength="150" value="{{ current_producto }}" list="productos-catalogo" autocomplete="off" required>
+        <datalist id="productos-catalogo">
+          {% for producto_catalogo in productos_catalogo %}
+            <option value="{{ producto_catalogo }}"></option>
+          {% endfor %}
+        </datalist>
       </label>
 
       <label class="field">

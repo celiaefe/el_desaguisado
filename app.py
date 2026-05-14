@@ -1,4 +1,5 @@
 import io
+import json
 import os
 import zipfile
 from datetime import date, datetime
@@ -25,6 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent
 INSTANCE_DIR = BASE_DIR / "instance"
 DEFAULT_DB_PATH = INSTANCE_DIR / "el_desaguisado.db"
 DEFAULT_UPLOADS = BASE_DIR / "static" / "uploads"
+DEFAULT_PRODUCTOS_CATALOGO = BASE_DIR / "static" / "productos_catalogo.json"
 VERCEL_TMP_DIR = Path("/tmp")
 OPTIONAL_INCIDENCIA_COLUMNS = {
     "fecha_compra": {
@@ -784,6 +786,25 @@ def build_excel_workbook(rows: list[list]) -> bytes:
     return output.getvalue()
 
 
+def load_productos_catalogo() -> list[str]:
+    """Carga el catálogo de productos para autocompletar formularios."""
+
+    if not DEFAULT_PRODUCTOS_CATALOGO.exists():
+        return []
+
+    try:
+        with DEFAULT_PRODUCTOS_CATALOGO.open("r", encoding="utf-8") as file:
+            data = json.load(file)
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if not isinstance(data, list):
+        return []
+
+    productos = [clean_text(str(item), 150) for item in data if str(item).strip()]
+    return list(dict.fromkeys(productos))
+
+
 def create_app() -> Flask:
     app = Flask(
         __name__,
@@ -799,6 +820,7 @@ def create_app() -> Flask:
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
     app.config["UPLOAD_FOLDER"] = get_upload_folder()
+    app.config["PRODUCTOS_CATALOGO"] = load_productos_catalogo()
 
     app.config["UPLOAD_FOLDER"].mkdir(parents=True, exist_ok=True)
 
@@ -824,6 +846,7 @@ def create_app() -> Flask:
             "prioridades_incidencia": PRIORIDADES_INCIDENCIA,
             "origenes_incidencia": ORIGENES_INCIDENCIA,
             "transportistas": TRANSPORTISTAS,
+            "productos_catalogo": app.config.get("PRODUCTOS_CATALOGO", []),
             "estado_badge_class": lambda value: badge_class(
                 value, ESTADO_BADGE_CLASSES
             ),
