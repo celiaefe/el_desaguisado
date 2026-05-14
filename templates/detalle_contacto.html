@@ -11,6 +11,29 @@
 {% endblock %}
 
 {% block content %}
+  <section class="summary-grid" aria-label="Resumen de incidencias del contacto">
+    <article class="summary-card">
+      <span>Total</span>
+      <strong>{{ total_incidencias }}</strong>
+      <small>Incidencias asociadas</small>
+    </article>
+    <article class="summary-card">
+      <span>Abiertas</span>
+      <strong>{{ incidencias_abiertas }}</strong>
+      <small>Nueva, revisión o pendiente</small>
+    </article>
+    <article class="summary-card">
+      <span>Resueltas/Cerradas</span>
+      <strong>{{ incidencias_cerradas }}</strong>
+      <small>Incidencias cerradas</small>
+    </article>
+    <article class="summary-card">
+      <span>Última incidencia</span>
+      <strong>{% if ultima_incidencia %}#{{ ultima_incidencia.id }}{% else %}-{% endif %}</strong>
+      <small>{% if ultima_incidencia %}{{ ultima_incidencia.fecha_registro.strftime("%d/%m/%Y %H:%M") }}{% else %}Sin registros{% endif %}</small>
+    </article>
+  </section>
+
   <section class="panel">
     <dl class="detail-list">
       <div><dt>Nombre</dt><dd>{{ contacto.nombre }}</dd></div>
@@ -26,5 +49,49 @@
       <div><dt>Comunidad autónoma</dt><dd>{{ contacto.comunidad_autonoma or "-" }}</dd></div>
       <div><dt>Estado</dt><dd>{{ "Activo" if contacto.activo else "Inactivo" }}</dd></div>
     </dl>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <div>
+        <h2>Historial de incidencias</h2>
+      </div>
+    </div>
+    {% if incidencias_contacto %}
+      <div class="table-wrap">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Fecha incidencia</th>
+              <th>Producto</th>
+              <th>Lote</th>
+              <th>Tipo de incidencia</th>
+              <th>Estado</th>
+              <th>Prioridad</th>
+              <th>Unidades afectadas</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for incidencia in incidencias_contacto %}
+              <tr>
+                <td>#{{ incidencia.id }}</td>
+                <td>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</td>
+                <td>{{ incidencia.producto }}</td>
+                <td>{{ incidencia.lote or "-" }}</td>
+                <td>{{ incidencia.tipo_incidencia }}</td>
+                <td><span class="tag tag-state-{{ estado_badge_class(incidencia.estado) }}">{{ incidencia.estado }}</span></td>
+                <td><span class="tag tag-priority-{{ prioridad_badge_class(incidencia.prioridad) }}">{{ incidencia.prioridad }}</span></td>
+                <td>{{ incidencia.unidades_afectadas }}</td>
+                <td><a class="text-link" href="{{ url_for('incidencia_detalle', id=incidencia.id) }}">Ver incidencia</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty-state">Este contacto todavía no tiene incidencias registradas.</p>
+    {% endif %}
   </section>
 {% endblock %}

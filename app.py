@@ -1266,10 +1266,32 @@ def create_app() -> Flask:
     @login_required
     def contacto_detalle(id: int):
         contacto = db.get_or_404(Contacto, id)
+        incidencias_contacto = (
+            Incidencia.query.filter_by(contacto_id=contacto.id)
+            .order_by(Incidencia.fecha_incidencia.desc(), Incidencia.id.desc())
+            .all()
+        )
+        total_incidencias = len(incidencias_contacto)
+        incidencias_abiertas = sum(
+            1 for incidencia in incidencias_contacto if incidencia.estado in ESTADOS_ABIERTOS
+        )
+        incidencias_cerradas = sum(
+            1 for incidencia in incidencias_contacto if incidencia.estado in ESTADOS_CON_CIERRE
+        )
+        ultima_incidencia = (
+            max(incidencias_contacto, key=lambda incidencia: incidencia.fecha_registro)
+            if incidencias_contacto
+            else None
+        )
         return render_template(
             "detalle_contacto.html",
             app_name="Entre Lotes",
             contacto=contacto,
+            incidencias_contacto=incidencias_contacto,
+            total_incidencias=total_incidencias,
+            incidencias_abiertas=incidencias_abiertas,
+            incidencias_cerradas=incidencias_cerradas,
+            ultima_incidencia=ultima_incidencia,
         )
 
     @app.route("/contactos/<int:id>/editar", methods=["GET", "POST"])
