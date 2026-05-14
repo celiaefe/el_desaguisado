@@ -314,6 +314,21 @@ a {
   margin-top: 1.2rem;
 }
 
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.inline-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .button {
   display: inline-flex;
   align-items: center;

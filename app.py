@@ -1147,20 +1147,40 @@ def create_app() -> Flask:
             return redirect(url_for("dashboard"))
 
         if request.method == "POST":
-            username = clean_text(request.form.get("username", ""), 80)
+            username = clean_text(request.form.get("username", ""), 80).lower()
             password = request.form.get("password", "")
+            register_requested = request.form.get("register_new") in {"1", "on", "true", "True"}
+            remember_requested = request.form.get("remember_me") in {"1", "on", "true", "True"}
             usuario = Usuario.query.filter_by(username=username).first()
 
-            if not usuario or not usuario.check_password(password) or not usuario.activo:
-                flash("Usuario o contraseña incorrectos.", "error")
-                return render_template(
-                    "login.html",
-                    app_name="Entre Lotes",
-                    username=username,
-                )
+            if register_requested:
+                if not username:
+                    flash("El usuario es obligatorio para registrarte.", "error")
+                    return render_template("login.html", app_name="Entre Lotes", username=username)
+                if not password:
+                    flash("La contraseña es obligatoria para registrarte.", "error")
+                    return render_template("login.html", app_name="Entre Lotes", username=username)
+                if usuario:
+                    flash("Ese usuario ya existe. Inicia sesión con tu contraseña.", "error")
+                    return render_template("login.html", app_name="Entre Lotes", username=username)
 
-            login_user(usuario)
-            flash("Sesión iniciada correctamente.", "success")
+                nuevo_usuario = Usuario(nombre=username, username=username, activo=True)
+                nuevo_usuario.set_password(password)
+                db.session.add(nuevo_usuario)
+                db.session.commit()
+                login_user(nuevo_usuario, remember=remember_requested)
+                flash("Cuenta creada e inicio de sesión correcto.", "success")
+            else:
+                if not usuario or not usuario.check_password(password) or not usuario.activo:
+                    flash("Usuario o contraseña incorrectos.", "error")
+                    return render_template(
+                        "login.html",
+                        app_name="Entre Lotes",
+                        username=username,
+                    )
+
+                login_user(usuario, remember=remember_requested)
+                flash("Sesión iniciada correctamente.", "success")
             return redirect(
                 safe_next_url(request.args.get("next")) or url_for("dashboard")
             )
