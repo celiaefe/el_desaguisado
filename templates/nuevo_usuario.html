@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo usuario | Entre Lotes{% endblock %}
+{% block eyebrow %}Cuenta{% endblock %}
+{% block page_title %}Nuevo usuario{% endblock %}
+{% block header_actions %}
+  <a class="button button-secondary" href="{{ url_for('usuarios_list') }}">Volver</a>
+{% endblock %}
+
+{% block content %}
+  <section class="panel account-panel">
+    <form method="post" class="form-stack">
+      <label class="field">
+        <span>Nombre</span>
+        <input type="text" name="nombre" maxlength="120" required>
+      </label>
+      <label class="field">
+        <span>Username</span>
+        <input type="text" name="username" maxlength="80" required>
+      </label>
+      <label class="field">
+        <span>Contraseña inicial</span>
+        <input type="password" name="password_inicial" required>
+      </label>
+      <label class="field">
+        <span>Activo</span>
+        <select name="activo">
+          <option value="1" selected>Sí</option>
+          <option value="0">No</option>
+        </select>
+      </label>
+      <div class="form-actions">
+        <button class="button" type="submit">Crear usuario</button>
+      </div>
+    </form>
+  </section>
+{% endblock %}

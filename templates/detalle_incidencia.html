@@ -21,6 +21,7 @@
       </div>
       <dl class="detail-list">
         <div><dt>Fecha registro</dt><dd>{{ incidencia.fecha_registro.strftime("%d/%m/%Y %H:%M") }}</dd></div>
+        <div><dt>Creada por</dt><dd>{{ incidencia.creador.nombre if incidencia.creador else "-" }}</dd></div>
         <div><dt>Fecha incidencia</dt><dd>{{ incidencia.fecha_incidencia.strftime("%d/%m/%Y") }}</dd></div>
         <div><dt>Fecha compra</dt><dd>{{ incidencia.fecha_compra.strftime("%d/%m/%Y") if incidencia.fecha_compra else "-" }}</dd></div>
         <div><dt>Fecha detección</dt><dd>{{ incidencia.fecha_deteccion.strftime("%d/%m/%Y") if incidencia.fecha_deteccion else "-" }}</dd></div>
@@ -86,5 +87,36 @@
       <h2>Resolución</h2>
       <p class="detail-text">{{ incidencia.resolucion or "Todavía no se ha documentado una resolución." }}</p>
     </article>
+  </section>
+
+  <section class="panel followup-panel">
+    <div class="panel-head">
+      <div>
+        <h2>Comentarios de seguimiento</h2>
+      </div>
+    </div>
+    <form method="post" action="{{ url_for('incidencia_agregar_seguimiento', id=incidencia.id) }}" class="followup-form form-stack">
+      <label class="field">
+        <span>Nuevo comentario</span>
+        <textarea name="comentario" rows="3" required></textarea>
+      </label>
+      <div class="form-actions">
+        <button class="button" type="submit">Añadir comentario</button>
+      </div>
+    </form>
+
+    {% if seguimientos %}
+      <div class="followup-list">
+        {% for seguimiento in seguimientos %}
+          <article class="followup-item">
+            <time datetime="{{ seguimiento.fecha_creacion.isoformat() }}">{{ seguimiento.fecha_creacion.strftime("%d/%m/%Y %H:%M") }}</time>
+            <p><strong>{{ seguimiento.autor.nombre if seguimiento.autor else "Usuario" }}</strong></p>
+            <p>{{ seguimiento.comentario }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="empty-state">Todavía no hay comentarios de seguimiento.</p>
+    {% endif %}
   </section>
 {% endblock %}

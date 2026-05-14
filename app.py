@@ -63,6 +63,16 @@ OPTIONAL_INCIDENCIA_COLUMNS = {
         "sqlite": "INTEGER",
         "postgresql": "INTEGER",
     },
+    "created_by_user_id": {
+        "sqlite": "INTEGER",
+        "postgresql": "INTEGER",
+    },
+}
+OPTIONAL_SEGUIMIENTO_COLUMNS = {
+    "author_user_id": {
+        "sqlite": "INTEGER",
+        "postgresql": "INTEGER",
+    },
 }
 
 db = SQLAlchemy()
@@ -157,6 +167,16 @@ class Usuario(UserMixin, db.Model):
     username = db.Column(db.String(80), nullable=False, unique=True, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     activo = db.Column(db.Boolean, nullable=False, default=True)
+    incidencias_creadas = db.relationship(
+        "Incidencia",
+        foreign_keys="Incidencia.created_by_user_id",
+        back_populates="creador",
+    )
+    seguimientos_creados = db.relationship(
+        "SeguimientoIncidencia",
+        foreign_keys="SeguimientoIncidencia.author_user_id",
+        back_populates="autor",
+    )
 
     @property
     def is_active(self) -> bool:
@@ -211,6 +231,7 @@ class Incidencia(db.Model):
     fecha_incidencia = db.Column(db.Date, nullable=False, default=date.today)
     fecha_compra = db.Column(db.Date)
     fecha_deteccion = db.Column(db.Date)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
     contacto_id = db.Column(db.Integer, db.ForeignKey("contactos.id"), index=True)
     tienda = db.Column(db.String(150), nullable=False)
     producto = db.Column(db.String(150), nullable=False)
@@ -229,6 +250,7 @@ class Incidencia(db.Model):
     observaciones_internas = db.Column(db.Text)
     resolucion = db.Column(db.Text)
     fecha_cierre = db.Column(db.Date)
+    creador = db.relationship("Usuario", foreign_keys=[created_by_user_id], back_populates="incidencias_creadas")
     contacto = db.relationship("Contacto", back_populates="incidencias")
     seguimientos = db.relationship(
         "SeguimientoIncidencia",
@@ -254,7 +276,9 @@ class SeguimientoIncidencia(db.Model):
         nullable=False,
         default=datetime.utcnow,
     )
+    author_user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), index=True)
     comentario = db.Column(db.Text, nullable=False)
+    autor = db.relationship("Usuario", foreign_keys=[author_user_id], back_populates="seguimientos_creados")
     incidencia = db.relationship("Incidencia", back_populates="seguimientos")
 
 
@@ -569,6 +593,7 @@ def create_tables(app: Flask) -> None:
     with app.app_context():
         db.create_all()
         ensure_optional_incidencia_columns()
+        ensure_optional_seguimiento_columns()
         ensure_initial_user()
 
 
@@ -602,6 +627,30 @@ def ensure_optional_incidencia_columns() -> None:
             db.session.execute(
                 text(
                     f"ALTER TABLE {Incidencia.__tablename__} "
+                    f"ADD COLUMN {column_name} {column_type}"
+                )
+            )
+    db.session.commit()
+
+
+def ensure_optional_seguimiento_columns() -> None:
+    """Añade columnas opcionales nuevas en seguimientos si la tabla ya existía."""
+
+    dialect_name = db.engine.dialect.name
+    if dialect_name not in {"sqlite", "postgresql"}:
+        return
+    if not inspect(db.engine).has_table(SeguimientoIncidencia.__tablename__):
+        return
+
+    existing_columns = {
+        column["name"] for column in inspect(db.engine).get_columns(SeguimientoIncidencia.__tablename__)
+    }
+    for column_name, column_types in OPTIONAL_SEGUIMIENTO_COLUMNS.items():
+        if column_name not in existing_columns:
+            column_type = column_types[dialect_name]
+            db.session.execute(
+                text(
+                    f"ALTER TABLE {SeguimientoIncidencia.__tablename__} "
                     f"ADD COLUMN {column_name} {column_type}"
                 )
             )
@@ -1150,6 +1199,47 @@ def create_app() -> Flask:
 
         return render_template("cambiar_password.html", app_name="Entre Lotes")
 
+    @app.get("/usuarios")
+    @login_required
+    def usuarios_list():
+        usuarios = Usuario.query.order_by(Usuario.nombre.asc(), Usuario.id.asc()).all()
+        return render_template(
+            "usuarios.html",
+            app_name="Entre Lotes",
+            usuarios=usuarios,
+        )
+
+    @app.route("/usuarios/nuevo", methods=["GET", "POST"])
+    @login_required
+    def usuario_nuevo():
+        if request.method == "POST":
+            nombre = clean_text(request.form.get("nombre", ""), 120)
+            username = clean_text(request.form.get("username", ""), 80).lower()
+            password_inicial = request.form.get("password_inicial", "")
+            activo = request.form.get("activo") in {"1", "on", "true", "True"}
+
+            if not nombre:
+                flash("El nombre es obligatorio.", "error")
+                return render_template("nuevo_usuario.html", app_name="Entre Lotes")
+            if not username:
+                flash("El username es obligatorio.", "error")
+                return render_template("nuevo_usuario.html", app_name="Entre Lotes")
+            if not password_inicial:
+                flash("La contraseña inicial es obligatoria.", "error")
+                return render_template("nuevo_usuario.html", app_name="Entre Lotes")
+            if Usuario.query.filter_by(username=username).first():
+                flash("Ese username ya existe.", "error")
+                return render_template("nuevo_usuario.html", app_name="Entre Lotes")
+
+            usuario = Usuario(nombre=nombre, username=username, activo=activo)
+            usuario.set_password(password_inicial)
+            db.session.add(usuario)
+            db.session.commit()
+            flash("Usuario creado correctamente.", "success")
+            return redirect(url_for("usuarios_list"))
+
+        return render_template("nuevo_usuario.html", app_name="Entre Lotes")
+
     @app.get("/dashboard")
     @login_required
     def dashboard():
@@ -1540,6 +1630,7 @@ def create_app() -> Flask:
                 )
 
             incidencia = Incidencia(**data)
+            incidencia.created_by_user_id = current_user.id
             db.session.add(incidencia)
             db.session.commit()
             flash("La incidencia se ha creado correctamente.", "success")
@@ -1551,10 +1642,16 @@ def create_app() -> Flask:
     @login_required
     def incidencia_detalle(id: int):
         incidencia = db.get_or_404(Incidencia, id)
+        seguimientos = (
+            SeguimientoIncidencia.query.filter_by(incidencia_id=incidencia.id)
+            .order_by(SeguimientoIncidencia.fecha_creacion.desc(), SeguimientoIncidencia.id.desc())
+            .all()
+        )
         return render_template(
             "detalle_incidencia.html",
             app_name="Entre Lotes",
             incidencia=incidencia,
+            seguimientos=seguimientos,
         )
 
     @app.post("/incidencias/<int:id>/seguimiento")
@@ -1569,6 +1666,7 @@ def create_app() -> Flask:
 
         seguimiento = SeguimientoIncidencia(
             incidencia_id=incidencia.id,
+            author_user_id=current_user.id,
             comentario=comentario,
         )
         db.session.add(seguimiento)
