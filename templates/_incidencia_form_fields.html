@@ -77,7 +77,16 @@
     <div class="form-grid">
       <label class="field">
         <span>Transportista</span>
-        <input type="text" name="transportista" maxlength="120" value="{{ form_values.get('transportista', incidencia.transportista if incidencia else '') }}">
+        {% set current_transportista = form_values.get('transportista', incidencia.transportista if incidencia else '') %}
+        <select name="transportista">
+          <option value="">Selecciona una opción</option>
+          {% for transportista in transportistas %}
+            <option value="{{ transportista }}" {% if current_transportista == transportista %}selected{% endif %}>{{ transportista }}</option>
+          {% endfor %}
+          {% if current_transportista and current_transportista not in transportistas %}
+            <option value="{{ current_transportista }}" selected>{{ current_transportista }}</option>
+          {% endif %}
+        </select>
       </label>
 
       <label class="field">

@@ -96,6 +96,13 @@ ORIGENES_INCIDENCIA = [
     "Comercial",
     "Otro",
 ]
+TRANSPORTISTAS = [
+    "GLS",
+    "Seur Frío",
+    "Meana",
+    "Lofriastur",
+    "Otro",
+]
 ESTADO_BADGE_CLASSES = {
     "Nueva": "nueva",
     "En revisión": "en-revision",
@@ -335,6 +342,8 @@ def validate_incidencia_form(form_data) -> tuple[dict, list[str]]:
         errors.append("Selecciona una prioridad válida.")
     if origen_incidencia and origen_incidencia not in ORIGENES_INCIDENCIA:
         errors.append("Selecciona un origen de incidencia válido.")
+    if transportista and transportista not in TRANSPORTISTAS:
+        errors.append("Selecciona un transportista válido.")
 
     unidades_raw = form_data.get("unidades_afectadas", "").strip()
     try:
@@ -814,6 +823,7 @@ def create_app() -> Flask:
             "estados_incidencia": ESTADOS_INCIDENCIA,
             "prioridades_incidencia": PRIORIDADES_INCIDENCIA,
             "origenes_incidencia": ORIGENES_INCIDENCIA,
+            "transportistas": TRANSPORTISTAS,
             "estado_badge_class": lambda value: badge_class(
                 value, ESTADO_BADGE_CLASSES
             ),
@@ -912,6 +922,27 @@ def create_app() -> Flask:
                     else 0,
                 }
             )
+        conteos_transportista = dict(
+            db.session.query(Incidencia.transportista, db.func.count(Incidencia.id))
+            .filter(Incidencia.transportista.isnot(None))
+            .filter(Incidencia.transportista != "")
+            .group_by(Incidencia.transportista)
+            .order_by(db.func.count(Incidencia.id).desc())
+            .limit(4)
+            .all()
+        )
+        total_transportistas_dashboard = sum(conteos_transportista.values())
+        incidencias_por_transportista = []
+        for transportista, count in conteos_transportista.items():
+            incidencias_por_transportista.append(
+                {
+                    "nombre": transportista,
+                    "total": count,
+                    "porcentaje": round((count / total_transportistas_dashboard) * 100)
+                    if total_transportistas_dashboard
+                    else 0,
+                }
+            )
 
         return render_template(
             "dashboard.html",
@@ -921,6 +952,7 @@ def create_app() -> Flask:
             abiertas=abiertas,
             resueltas=resueltas,
             incidencias_por_tipo=incidencias_por_tipo,
+            incidencias_por_transportista=incidencias_por_transportista,
         )
 
     @app.route("/incidencias")
