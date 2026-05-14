@@ -2,8 +2,8 @@
   --page: #FBF7F0;
   --page-deep: #F3EBDD;
 
-  --sidebar: #E5C84E;
-  --sidebar-soft: #D9B236;
+  --sidebar: #C9CDBB;
+  --sidebar-soft: #AEB49E;
 
   --surface: #FFFDF9;
   --surface-soft: #F8F1E6;
@@ -88,7 +88,7 @@ a {
   gap: 0.9rem;
   margin-bottom: 2.2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(46, 37, 31, 0.18);
+  border-bottom: 1px solid rgba(46, 37, 31, 0.16);
   text-decoration: none;
 }
 
@@ -107,7 +107,7 @@ a {
 .brand-lockup small {
   max-width: 170px;
   margin-top: 0.35rem;
-  color: rgba(46, 37, 31, 0.76);
+  color: rgba(46, 37, 31, 0.72);
   font-size: 0.78rem;
   line-height: 1.35;
 }
@@ -129,15 +129,20 @@ a {
   padding: 0.85rem 0.95rem;
   border: 1px solid transparent;
   border-radius: 8px;
-  color: rgba(46, 37, 31, 0.76);
+  color: rgba(46, 37, 31, 0.72);
   font-weight: 760;
   text-decoration: none;
 }
 
-.sidebar-nav a:hover,
-.sidebar-nav a.is-active {
-  border-color: rgba(46, 37, 31, 0.18);
+.sidebar-nav a:hover {
+  border-color: rgba(46, 37, 31, 0.16);
   background: rgba(255, 255, 255, 0.28);
+  color: #2E251F;
+}
+
+.sidebar-nav a.is-active {
+  border-color: #8A907C;
+  background: rgba(255, 255, 255, 0.36);
   color: #2E251F;
 }
 
@@ -149,15 +154,15 @@ a {
   left: -0.05rem;
   width: 3px;
   border-radius: 999px;
-  background: #F5DC82;
-  box-shadow: 0 0 16px rgba(245, 220, 130, 0.26);
+  background: #8A907C;
+  box-shadow: 0 0 16px rgba(138, 144, 124, 0.26);
 }
 
 .sidebar-user {
   margin-top: auto;
-  border: 1px solid rgba(46, 37, 31, 0.16);
+  border: 1px solid rgba(46, 37, 31, 0.14);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.20);
+  background: rgba(255, 255, 255, 0.22);
   overflow: hidden;
 }
 
@@ -203,10 +208,10 @@ a {
 
 .sidebar-user a {
   padding: 0.5rem 0.55rem;
-  border: 1px solid rgba(46, 37, 31, 0.16);
+  border: 1px solid rgba(46, 37, 31, 0.14);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.24);
-  color: rgba(46, 37, 31, 0.8);
+  color: rgba(46, 37, 31, 0.72);
   font-size: 0.84rem;
   font-weight: 760;
   text-decoration: none;
