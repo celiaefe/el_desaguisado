@@ -171,7 +171,7 @@
     const contactosLookup = {{ contactos_lookup | tojson }};
     const contactosLista = {{ contactos_lookup.keys() | list | tojson }};
     const productosCatalogo = {{ productos_catalogo | tojson }};
-    const MAX_SUGGESTIONS = 8;
+    const MAX_SUGGESTIONS = 20;
 
     if (!tiendaInput || !contactoIdHidden || !productoInput) {
       return;
@@ -188,7 +188,7 @@
         : "";
     }
 
-    function renderSuggestions(container, items, onPick) {
+    function renderSuggestions(container, items, totalMatches, onPick) {
       container.innerHTML = "";
       if (!items.length) {
         container.hidden = true;
@@ -203,18 +203,23 @@
         button.addEventListener("click", () => onPick(item));
         fragment.appendChild(button);
       });
+      if (totalMatches > items.length) {
+        const more = document.createElement("div");
+        more.className = "autocomplete-more";
+        more.textContent = `y ${totalMatches - items.length} más... sigue escribiendo`;
+        fragment.appendChild(more);
+      }
       container.appendChild(fragment);
       container.hidden = false;
     }
 
     function filterItems(source, query) {
       if (!query) {
-        return [];
+        return { items: [], total: 0 };
       }
       const normalizedQuery = normalize(query);
-      return source
-        .filter((item) => normalize(item).includes(normalizedQuery))
-        .slice(0, MAX_SUGGESTIONS);
+      const matches = source.filter((item) => normalize(item).includes(normalizedQuery));
+      return { items: matches.slice(0, MAX_SUGGESTIONS), total: matches.length };
     }
 
     function hideSuggestions() {
@@ -224,8 +229,8 @@
 
     tiendaInput.addEventListener("input", () => {
       syncContactoId();
-      const items = filterItems(contactosLista, tiendaInput.value);
-      renderSuggestions(tiendaSuggestions, items, (item) => {
+      const result = filterItems(contactosLista, tiendaInput.value);
+      renderSuggestions(tiendaSuggestions, result.items, result.total, (item) => {
         tiendaInput.value = item;
         syncContactoId();
         tiendaSuggestions.hidden = true;
@@ -236,8 +241,8 @@
     tiendaInput.addEventListener("change", syncContactoId);
 
     productoInput.addEventListener("input", () => {
-      const items = filterItems(productosCatalogo, productoInput.value);
-      renderSuggestions(productoSuggestions, items, (item) => {
+      const result = filterItems(productosCatalogo, productoInput.value);
+      renderSuggestions(productoSuggestions, result.items, result.total, (item) => {
         productoInput.value = item;
         productoSuggestions.hidden = true;
       });

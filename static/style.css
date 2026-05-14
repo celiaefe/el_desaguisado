@@ -1026,6 +1026,13 @@ tbody tr:last-child td {
   background: #F8F1E6;
 }
 
+.autocomplete-more {
+  padding: 0.45rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+  border-top: 1px solid rgba(169, 135, 72, 0.16);
+}
+
 .field-full {
   grid-column: 1 / -1;
 }
