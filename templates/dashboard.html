@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | Entre Lotes{% endblock %}
-{% block eyebrow %}Panel principal{% endblock %}
-{% block page_title %}Dashboard de incidencias{% endblock %}
+{% block title %}Panel inicial | Entre Lotes{% endblock %}
+{% block eyebrow %}{% endblock %}
+{% block page_title %}Panel inicial{% endblock %}
 {% block header_actions %}
   <a class="button" href="{{ url_for('incidencia_nueva') }}">Nueva incidencia</a>
 {% endblock %}
@@ -39,15 +39,19 @@
       </div>
     </div>
 
-    <div class="type-breakdown" aria-label="Incidencias por tipo">
+    <div class="type-chart-grid" aria-label="Incidencias por tipo">
       {% for tipo in incidencias_por_tipo %}
-        <article class="type-breakdown-item">
-          <div class="type-breakdown-row">
+        <article class="type-chart-card">
+          <div
+            class="type-donut type-donut-{{ loop.index }}"
+            style="--value: {{ tipo.porcentaje }};"
+            aria-label="{{ tipo.nombre }}: {{ tipo.total }} incidencia{% if tipo.total != 1 %}s{% endif %}, {{ tipo.porcentaje }}%"
+          >
+            <span>{{ tipo.porcentaje }}%</span>
+          </div>
+          <div class="type-chart-copy">
             <span>{{ tipo.nombre }}</span>
             <strong>{{ tipo.total }}</strong>
-          </div>
-          <div class="type-breakdown-track" aria-hidden="true">
-            <span style="width: {{ tipo.porcentaje }}%;"></span>
           </div>
         </article>
       {% endfor %}

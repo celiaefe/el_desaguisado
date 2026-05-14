@@ -899,7 +899,7 @@ def create_app() -> Flask:
             .group_by(Incidencia.tipo_incidencia)
             .all()
         )
-        max_tipo_count = max(conteos_por_tipo.values(), default=0)
+        total_tipos_dashboard = sum(conteos_por_tipo.values())
         incidencias_por_tipo = []
         for tipo in TIPOS_DASHBOARD:
             count = conteos_por_tipo.get(tipo, 0)
@@ -907,8 +907,8 @@ def create_app() -> Flask:
                 {
                     "nombre": tipo,
                     "total": count,
-                    "porcentaje": round((count / max_tipo_count) * 100)
-                    if max_tipo_count
+                    "porcentaje": round((count / total_tipos_dashboard) * 100)
+                    if total_tipos_dashboard
                     else 0,
                 }
             )

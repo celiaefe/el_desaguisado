@@ -257,6 +257,10 @@ a {
   text-transform: uppercase;
 }
 
+.eyebrow:empty {
+  display: none;
+}
+
 .content {
   display: grid;
   gap: 1.45rem;
@@ -601,6 +605,79 @@ a {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #9B6B3E, #D2AE74);
+}
+
+.type-chart-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.type-chart-card {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 1.05rem 0.95rem;
+  border: 1px solid rgba(184, 138, 68, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.82);
+}
+
+.type-donut {
+  --value: 0;
+  --chart-color: #9B6B3E;
+  display: grid;
+  width: 116px;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 0 56%, transparent 57%),
+    conic-gradient(var(--chart-color) calc(var(--value) * 1%), #EFE5D8 0);
+  box-shadow: inset 0 0 0 1px rgba(184, 138, 68, 0.16);
+}
+
+.type-donut span {
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.22rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.type-donut-2 {
+  --chart-color: #B88A44;
+}
+
+.type-donut-3 {
+  --chart-color: #6E7D55;
+}
+
+.type-donut-4 {
+  --chart-color: #8A4A3C;
+}
+
+.type-chart-copy {
+  display: grid;
+  justify-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.type-chart-copy span {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.type-chart-copy strong {
+  color: #9B6B3E;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  line-height: 1;
 }
 
 .table-wrap {
@@ -1038,6 +1115,7 @@ tbody tr:last-child td {
   }
 
   .summary-grid,
+  .type-chart-grid,
   .filters-form,
   .notes-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1069,6 +1147,7 @@ tbody tr:last-child td {
 
   .sidebar-nav,
   .summary-grid,
+  .type-chart-grid,
   .filters-form,
   .form-grid,
   .detail-list,
